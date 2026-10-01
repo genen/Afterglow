@@ -30,7 +30,7 @@ public static class Benchmarks
             var write = timer.Elapsed.TotalSeconds; timer.Restart();
             var read = File.ReadAllBytes(path); var readTime = timer.Elapsed.TotalSeconds;
             if (!data.AsSpan().SequenceEqual(read)) throw new IOException("Read verification failed.");
-            return $"Disk · 64 MiB temporary file\nWrite + flush: {Format.Rate(data.Length / write)}\nCached read: {Format.Rate(read.Length / readTime)}\nRead verified: yes";
+            return $"Disk · 64 MB temporary file\nWrite + flush: {Format.Rate(data.Length / write)}\nCached read: {Format.Rate(read.Length / readTime)}\nRead verified: yes";
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }

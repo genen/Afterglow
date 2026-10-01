@@ -12,7 +12,7 @@ public static class TraceFile
         var trace = new Trace(2, "Afterglow", platform, frames.ToArray());
         Validate(trace);
         var data = JsonSerializer.SerializeToUtf8Bytes(trace, Options);
-        if (data.Length > MaxBytes) throw new InvalidDataException("Recording exceeds 128 MiB.");
+        if (data.Length > MaxBytes) throw new InvalidDataException("Recording exceeds 128 MB.");
         var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try { await File.WriteAllBytesAsync(temp, data); File.Move(temp, path, true); }
         finally { if (File.Exists(temp)) File.Delete(temp); }
@@ -22,13 +22,13 @@ public static class TraceFile
     {
         // Read through one handle, with a hard bound even if a file changes during reading.
         await using var file = File.OpenRead(path);
-        if (file.Length > MaxBytes) throw new InvalidDataException("Recording exceeds 128 MiB.");
+        if (file.Length > MaxBytes) throw new InvalidDataException("Recording exceeds 128 MB.");
         using var buffer = new MemoryStream();
         var chunk = new byte[65536];
         int count;
         while ((count = await file.ReadAsync(chunk)) > 0)
         {
-            if (buffer.Length + count > MaxBytes) throw new InvalidDataException("Recording exceeds 128 MiB.");
+            if (buffer.Length + count > MaxBytes) throw new InvalidDataException("Recording exceeds 128 MB.");
             buffer.Write(chunk, 0, count);
         }
         return Decode(buffer.ToArray());

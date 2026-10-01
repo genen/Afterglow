@@ -327,7 +327,7 @@ internal sealed partial class MainWindow : Window
     {
         var stack = new StackPanel { Margin = new Thickness(22) };
         stack.Children.Add(Text("Small, repeatable workloads", 22, Theme.Accent));
-        stack.Children.Add(Text("CPU: single-thread integer operations. Memory: SHA-256 throughput. Disk: 64 MiB temporary write + flush and verified cached read.\nResults depend on background work and power policy; these are not hardware ratings.", 13, Theme.Muted));
+        stack.Children.Add(Text("CPU: single-thread integer operations. Memory: SHA-256 throughput. Disk: 64 MB temporary write + flush and verified cached read.\nResults depend on background work and power policy; these are not hardware ratings.", 13, Theme.Muted));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 22, 0, 22) };
         var result = Text(benchmarkRunning ? "A benchmark is already running…" : benchmarkResult, 16); result.FontFamily = new FontFamily("Consolas");
         foreach (var kind in new[] { "CPU", "Memory", "Disk" })
