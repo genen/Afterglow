@@ -21,7 +21,7 @@ internal static class Inventory
                 return plus > 0 ? info[..plus] : info;
             }
             var version = typeof(Inventory).Assembly.GetName().Version;
-            return version is null ? "1.2 stable" : version.Major + "." + version.Minor + " beta";
+            return version is null ? "1.3 stable" : version.Major + "." + version.Minor + " beta";
         }
     }
 

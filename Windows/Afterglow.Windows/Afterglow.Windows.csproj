@@ -5,8 +5,8 @@
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>Afterglow</AssemblyName>
-    <Version>1.2.0</Version>
-    <InformationalVersion>1.2 stable</InformationalVersion>
+    <Version>1.3.0</Version>
+    <InformationalVersion>1.3 stable</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Afterglow.ico</ApplicationIcon>
