@@ -74,11 +74,11 @@ public static class Format
         return $"{v:0.#} {units[i]}";
     }
     public static string Rate(double? n) => n is null ? "Unavailable" : Bytes(n) + "/s";
-    // Labels stay Kbps, Mbps, and Gbps. The shown number is 8× smaller than the previous bit conversion.
+    // Network counters are bytes per second. Labels are Kbps, Mbps, and Gbps.
     public static string Bits(double? bytesPerSecond)
     {
         if (bytesPerSecond is not { } bytes || !double.IsFinite(bytes) || bytes < 0) return "Unavailable";
-        var bits = bytes;
+        var bits = bytes * 8;
         if (bits == 0) return "0 Kbps";
         if (bits < 1000) return $"{bits:0} bps";
         if (bits < 1_000_000) return $"{bits / 1000:0.#} Kbps";

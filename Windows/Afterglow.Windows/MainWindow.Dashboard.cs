@@ -56,7 +56,7 @@ internal sealed partial class MainWindow
         var resources = new Grid(); for (var i = 0; i < 3; i++) resources.ColumnDefinitions.Add(new()); for (var i = 0; i < 2; i++) resources.RowDefinitions.Add(new() { Height = GridLength.Auto });
         UIElement[] tiles = [
             Resource("Disks", "Disks", Theme.Cpu, s => Format.Rate(s.DiskRead + s.DiskWrite), s => $"R: {Format.Rate(s.DiskRead)}   W: {Format.Rate(s.DiskWrite)}   Busy {Format.Percent(s.DiskBusy)}", s => s.DiskBusy / 100 ?? (s.DiskRead + s.DiskWrite) / 500_000_000, "Busy is the busiest disk. The fallback scale is 500 MB/s."),
-            Resource("Network", "Network", Theme.Network, s => Format.Bits(s.Receive + s.Send), s => $"R: {Format.Bits(s.Receive)}   S: {Format.Bits(s.Send)}", s => (s.Receive + s.Send) / 100_000_000, "Meter scale: 100 Mbps combined throughput"),
+            Resource("Network", "Network", Theme.Network, s => Format.Bits(s.Receive + s.Send), s => $"R: {Format.Bits(s.Receive)}   S: {Format.Bits(s.Send)}", s => (s.Receive + s.Send) / 12_500_000, "Meter scale: 100 Mbps combined throughput"),
             Resource("Energy", "Energy", Theme.Energy, s => s.PackageWatts is { } package ? Format.Watts(package) : s.BatteryWatts is null ? "Unavailable" : Format.Watts(s.BatteryWatts), s => EnergyCaption(s), s => s.PackageWatts is { } package ? package / 750 : s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null),
             Resource("GPU 0", "Window", Theme.Gpu, s => s.Gpu is null ? "Unavailable" : Format.Percent(s.Gpu), s => s.Gpu is null ? "GPU utilization unavailable" : $"{s.GpuName ?? "GPU"} · dedicated {Format.Bytes(s.GpuMemory)}", s => s.Gpu / 100),
             Resource("NPU 0", "CPU", Theme.Npu, _ => "Unavailable", _ => "No generic NPU counter", _ => null),

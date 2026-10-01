@@ -62,7 +62,7 @@ internal sealed partial class MainWindow
         "GPU 0" => s => s.Gpu / 100,
         "NPU 0" => _ => null,
         "Disks" => s => s.DiskBusy / 100,
-        "Network" => s => (s.Receive + s.Send) / 100_000_000,
+        "Network" => s => (s.Receive + s.Send) / 12_500_000,
         "Energy" => s => s.PackageWatts is { } package ? package / 750 : s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null,
         "Thermals" => s => s.Temperature / 100,
         _ => _ => null
