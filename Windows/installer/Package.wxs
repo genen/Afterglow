@@ -21,7 +21,7 @@
       <Component Id="StartMenuShortcut" Guid="8E4C1A70-2B55-4F19-9A6D-1C3E7B0A5D22">
         <Shortcut Id="StartMenuAfterglow" Name="Afterglow" Description="System monitor"
                   Target="[INSTALLFOLDER]Afterglow.exe" WorkingDirectory="INSTALLFOLDER" Icon="Afterglow.ico" />
-        <RegistryValue Root="HKLM" Key="Software\Afterglow" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Afterglow" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </StandardDirectory>
 
@@ -29,7 +29,7 @@
       <Component Id="DesktopShortcut" Guid="F19A6C33-0D47-4E82-B5A1-7C2D8E4F6A10">
         <Shortcut Id="DesktopAfterglow" Name="Afterglow" Description="System monitor"
                   Target="[INSTALLFOLDER]Afterglow.exe" WorkingDirectory="INSTALLFOLDER" Icon="Afterglow.ico" />
-        <RegistryValue Root="HKLM" Key="Software\Afterglow" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Afterglow" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </StandardDirectory>
   </Package>
