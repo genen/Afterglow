@@ -136,8 +136,10 @@ internal sealed partial class MainWindow
     {
         var temps = sample.Temps ?? [];
         var names = sample.TempNames ?? [];
-        if (temps.Length == 0 || names.Length != temps.Length) return sample.Temperature is null ? SensorAccess.Unavailable : $"Hotspot {Format.Celsius(sample.Temperature)} · min {Format.Celsius(sample.TempMin)}";
-        return string.Join("\n", temps.Select((temp, index) => $"{names[index]}: {Format.Celsius(temp)}"));
+        var body = temps.Length == 0 || names.Length != temps.Length
+            ? sample.Temperature is null ? SensorAccess.Unavailable : $"Hotspot {Format.Celsius(sample.Temperature)} · min {Format.Celsius(sample.TempMin)}"
+            : string.Join("\n", temps.Select((temp, index) => $"{names[index]}: {Format.Celsius(temp)}"));
+        return string.IsNullOrWhiteSpace(sample.GpuTemperature) ? body : body + "\n" + sample.GpuTemperature;
     }
     private static string[] DiskNames(Sample? sample) => ["All", .. (sample?.Disks ?? []).Select(disk => disk.Name).Distinct()];
     private static string[] NicNames(Sample? sample) => ["All", .. (sample?.Interfaces ?? []).Select(nic => nic.Name).Distinct()];

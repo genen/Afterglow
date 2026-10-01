@@ -60,11 +60,18 @@ internal sealed partial class MainWindow
             Resource("Energy", "Energy", Theme.Energy, s => s.PackageWatts is { } package ? Format.Watts(package) : s.BatteryWatts is null ? "Unavailable" : Format.Watts(s.BatteryWatts), s => EnergyCaption(s), s => s.PackageWatts is { } package ? package / 750 : s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null),
             Resource("GPU 0", "Window", Theme.Gpu, s => s.Gpu is null ? "Unavailable" : Format.Percent(s.Gpu), s => s.Gpu is null ? "GPU utilization unavailable" : $"{s.GpuName ?? "GPU"} · dedicated {Format.Bytes(s.GpuMemory)}", s => s.Gpu / 100),
             Resource("NPU 0", "CPU", Theme.Npu, _ => "Unavailable", _ => "No generic NPU counter", _ => null),
-            Resource("Thermals", "Thermals", Theme.Thermal, s => s.Temperature is null ? "Unavailable" : Format.Celsius(s.Temperature), s => s.Temperature is null ? SensorAccess.Unavailable : Sensors.ThermalCaption(s.Temperature, s.TempMin, s.TempNames), s => s.Temperature / 100)
+            Resource("Thermals", "Thermals", Theme.Thermal, s => s.Temperature is null ? "Unavailable" : Format.Celsius(s.Temperature), ThermalLine, s => s.Temperature / 100, wrap: true)
         ];
         for (var i = 0; i < tiles.Length; i++) { Grid.SetColumn(tiles[i], i % 3); Grid.SetRow(tiles[i], i / 3); ((FrameworkElement)tiles[i]).Margin = new Thickness(0, 0, i % 3 == 2 ? 0 : 12, i < 3 ? 12 : 0); resources.Children.Add(tiles[i]); }
         stack.Children.Add(resources);
         return new ScrollViewer { Content = stack, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+    }
+
+    private static string ThermalLine(Sample sample)
+    {
+        var cpu = sample.Temperature is null ? null : Sensors.ThermalCaption(sample.Temperature, sample.TempMin, sample.TempNames);
+        var gpu = string.IsNullOrWhiteSpace(sample.GpuTemperature) ? null : sample.GpuTemperature;
+        return cpu is null && gpu is null ? SensorAccess.Unavailable : string.Join(" · ", new[] { cpu, gpu }.Where(item => item is not null));
     }
 
     private static string EnergyCaption(Sample sample)
@@ -110,10 +117,12 @@ internal sealed partial class MainWindow
         var icon = new Symbol(symbol, color) { Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center }; DockPanel.SetDock(icon, Dock.Left); row.Children.Add(icon);
         var name = Text(title, size); name.FontWeight = FontWeights.Medium; name.Margin = new Thickness(0); name.TextWrapping = TextWrapping.NoWrap; name.TextTrimming = TextTrimming.CharacterEllipsis; row.Children.Add(name); return row;
     }
-    private Border Resource(string title, string icon, Brush color, Func<Sample, string> value, Func<Sample, string> detail, Func<Sample, double?> fraction, string? tooltip = null)
+    private Border Resource(string title, string icon, Brush color, Func<Sample, string> value, Func<Sample, string> detail, Func<Sample, double?> fraction, string? tooltip = null, bool wrap = false)
     {
         var stack = new StackPanel(); stack.Children.Add(CardHeading(title, icon, color, value, 15));
-        var caption = Reading(detail, 10, Theme.Muted); caption.FontFamily = new FontFamily("Segoe UI"); caption.Margin = new Thickness(0, 0, 0, 8); stack.Children.Add(caption);
+        var caption = Reading(detail, 10, Theme.Muted); caption.FontFamily = new FontFamily("Segoe UI"); caption.Margin = new Thickness(0, 0, 0, 8);
+        if (wrap) { caption.TextWrapping = TextWrapping.Wrap; caption.TextTrimming = TextTrimming.None; }
+        stack.Children.Add(caption);
         var meter = Meter(fraction, color, false, 14); meter.ToolTip = tooltip ?? "Unavailable readings leave meter segments unlit"; stack.Children.Add(meter); return Card(stack);
     }
     private HistoryGraph NewGraph(Func<Sample, double?> value, double ceiling, Brush stroke, double height)

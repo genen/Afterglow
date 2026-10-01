@@ -30,9 +30,12 @@ internal sealed class CpuSensors : IDisposable
     private Computer? computer;
     private int pawnAttempt;
     private PackagePower power = new(null, null);
+    private string? gpuTemperature;
+    private bool sawGpu;
 
     public double? PackageWatts => Volatile.Read(ref power).Watts;
     public string? PowerDetail => Volatile.Read(ref power).Detail;
+    public string? GpuTemperature => Volatile.Read(ref gpuTemperature);
 
     public (string Name, double Celsius)[] Read()
     {
@@ -40,7 +43,7 @@ internal sealed class CpuSensors : IDisposable
         {
             computer ??= Open();
             var rows = ReadOnce(computer);
-            if (rows.Count == 0 || PackageWatts is null) rows = ReadOnce(computer);
+            if (rows.Count == 0 || PackageWatts is null || (sawGpu && GpuTemperature is null)) rows = ReadOnce(computer);
             return rows.ToArray();
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -113,20 +116,28 @@ internal sealed class CpuSensors : IDisposable
     {
         var rows = new List<(string Name, double Celsius)>();
         var parts = new List<(string Label, double Watts)>();
-        foreach (var hardware in computer.Hardware) Visit(hardware, rows, parts);
+        var gpuTemps = new List<double>();
+        sawGpu = false;
+        foreach (var hardware in computer.Hardware) Visit(hardware, rows, parts, gpuTemps);
         var supply = parts.Where(part => part.Label == "PSU").ToArray();
         var components = parts.Where(part => part.Label != "PSU").ToArray();
         double? total = supply.Length > 0 ? supply.Sum(part => part.Watts) : components.Length > 0 ? components.Sum(part => part.Watts) : null;
         var detailParts = supply.Length > 0 ? supply.Concat(components) : components;
         var detail = detailParts.Any() ? string.Join(" · ", detailParts.Select(part => $"{part.Label} {Format.Watts(part.Watts)}")) : null;
         Volatile.Write(ref power, new PackagePower(total, detail));
+        Volatile.Write(ref gpuTemperature, gpuTemps.Count == 0 ? null : string.Join(" · ", gpuTemps.Select((celsius, index) => $"{(gpuTemps.Count == 1 ? "GPU" : "GPU " + (index + 1))} {Format.Celsius(celsius)}")));
         return rows;
     }
 
-    private static void Visit(IHardware hardware, List<(string Name, double Celsius)> rows, List<(string Label, double Watts)> parts)
+    private void Visit(IHardware hardware, List<(string Name, double Celsius)> rows, List<(string Label, double Watts)> parts, List<double> gpuTemps)
     {
         hardware.Update();
         if (hardware.HardwareType != HardwareType.Battery) CollectPower(hardware, parts);
+        if (hardware.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel)
+        {
+            sawGpu = true;
+            if (GpuCoreCelsius(hardware) is { } celsius) gpuTemps.Add(celsius);
+        }
         foreach (var sensor in hardware.Sensors)
         {
             if (hardware.HardwareType is not (HardwareType.Cpu or HardwareType.Motherboard)) break;
@@ -136,7 +147,19 @@ internal sealed class CpuSensors : IDisposable
             if (hardware.HardwareType == HardwareType.Motherboard && !Sensors.IsCpuZone(name)) continue;
             rows.Add((hardware.HardwareType == HardwareType.Motherboard ? hardware.Name + " " + name : name, value));
         }
-        foreach (var sub in hardware.SubHardware) Visit(sub, rows, parts);
+        foreach (var sub in hardware.SubHardware) Visit(sub, rows, parts, gpuTemps);
+    }
+
+    private static double? GpuCoreCelsius(IHardware hardware)
+    {
+        var temps = hardware.Sensors
+            .Where(sensor => sensor.SensorType == SensorType.Temperature && sensor.Value is float value && !float.IsNaN(value) && !float.IsInfinity(value) && value is >= 10f and <= 125f)
+            .Select(sensor => (Name: sensor.Name ?? "", Celsius: (double)sensor.Value!.Value))
+            .ToArray();
+        if (temps.Length == 0) return null;
+        var core = temps.Where(sensor => sensor.Name.Contains("core", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (core.Length == 0) core = temps.Where(sensor => !sensor.Name.Contains("memory", StringComparison.OrdinalIgnoreCase) && !sensor.Name.Contains("hot", StringComparison.OrdinalIgnoreCase) && !sensor.Name.Contains("junction", StringComparison.OrdinalIgnoreCase)).ToArray();
+        return (core.Length > 0 ? core : temps).Max(sensor => sensor.Celsius);
     }
 
     private static void CollectPower(IHardware hardware, List<(string Label, double Watts)> parts)
