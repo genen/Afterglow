@@ -72,6 +72,7 @@ public static class TraceFile
             foreach (var percent in new double?[] { s.Gpu, s.Gpu3D, s.GpuCopy, s.GpuCompute, s.GpuDecode, s.GpuEncode, s.DiskBusy, s.PageFile })
                 if (percent is { } n && (!double.IsFinite(n) || n is < 0 or > 100)) throw new InvalidDataException("Invalid percent counter.");
             if (s.BatteryWatts is { } watts && (!double.IsFinite(watts) || Math.Abs(watts) > 500)) throw new InvalidDataException("Invalid battery rate.");
+            if (s.PackageWatts is { } package && (!double.IsFinite(package) || package is <= 0 or > 1000)) throw new InvalidDataException("Invalid package power.");
             if (s.Frequency is > 20_000) throw new InvalidDataException("Invalid processor frequency.");
             if (new double?[] { s.Temperature, s.TempMin }.Any(temp => temp is { } n && (!double.IsFinite(n) || n is < -20 or > 125)) ||
                 (s.Temps ?? []).Any(n => !double.IsFinite(n) || n is < -20 or > 125))

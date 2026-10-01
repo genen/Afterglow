@@ -22,7 +22,7 @@ internal sealed partial class MainWindow
 
         var gauges = new System.Windows.Controls.Primitives.UniformGrid { Columns = 4, Height = 210 };
         gauges.Children.Add(Gauge("CPU", Theme.Cpu, s => s.Cpu / 100, s => Format.Percent(s.Cpu)));
-        gauges.Children.Add(Gauge("Power", Theme.Energy, _ => null, _ => "N/A"));
+        gauges.Children.Add(Gauge("Power", Theme.Energy, s => s.PackageWatts / 250, s => s.PackageWatts is null ? "N/A" : Format.Watts(s.PackageWatts)));
         gauges.Children.Add(Gauge("Temp", Theme.Thermal, s => s.Temperature / 100, s => s.Temperature is null ? "N/A" : Format.Celsius(s.Temperature)));
         gauges.Children.Add(Gauge("GPU", Theme.Gpu, s => s.Gpu / 100, s => s.Gpu is null ? "N/A" : Format.Percent(s.Gpu)));
         var gaugeCard = Card(gauges); gaugeCard.VerticalAlignment = VerticalAlignment.Top; gaugeCard.Margin = new Thickness(0, 0, 12, 0); top.Children.Add(gaugeCard);
@@ -57,7 +57,7 @@ internal sealed partial class MainWindow
         UIElement[] tiles = [
             Resource("Disks", "Disks", Theme.Cpu, s => Format.Rate(s.DiskRead + s.DiskWrite), s => $"R: {Format.Rate(s.DiskRead)}   W: {Format.Rate(s.DiskWrite)}   Busy {Format.Percent(s.DiskBusy)}", s => s.DiskBusy / 100 ?? (s.DiskRead + s.DiskWrite) / 500_000_000, "Busy is the busiest disk. The fallback scale is 500 MB/s."),
             Resource("Network", "Network", Theme.Network, s => Format.Rate(s.Receive + s.Send), s => $"R: {Format.Rate(s.Receive)}   S: {Format.Rate(s.Send)}", s => (s.Receive + s.Send) / 12_500_000, "Meter scale: 12.5 MB/s combined throughput"),
-            Resource("Energy", "Energy", Theme.Energy, s => s.BatteryWatts is null ? "Unavailable" : Format.Watts(s.BatteryWatts), s => s.BatteryWatts is { } watts ? $"Battery {(watts > 0 ? "discharging" : watts < 0 ? "charging" : "idle")} · {s.PowerSource}" : $"Package watts unavailable · {s.PowerSource}", s => s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null),
+            Resource("Energy", "Energy", Theme.Energy, s => s.PackageWatts is { } package ? Format.Watts(package) : s.BatteryWatts is null ? "Unavailable" : Format.Watts(s.BatteryWatts), s => EnergyCaption(s), s => s.PackageWatts is { } package ? package / 250 : s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null),
             Resource("GPU 0", "Window", Theme.Gpu, s => s.Gpu is null ? "Unavailable" : Format.Percent(s.Gpu), s => s.Gpu is null ? "GPU utilization unavailable" : $"{s.GpuName ?? "GPU"} · dedicated {Format.Bytes(s.GpuMemory)}", s => s.Gpu / 100),
             Resource("NPU 0", "CPU", Theme.Npu, _ => "Unavailable", _ => "No generic NPU counter", _ => null),
             Resource("Thermals", "Thermals", Theme.Thermal, s => s.Temperature is null ? "Unavailable" : Format.Celsius(s.Temperature), s => s.Temperature is null ? SensorAccess.Unavailable : Sensors.ThermalCaption(s.Temperature, s.TempMin, s.TempNames), s => s.Temperature / 100)
@@ -65,6 +65,13 @@ internal sealed partial class MainWindow
         for (var i = 0; i < tiles.Length; i++) { Grid.SetColumn(tiles[i], i % 3); Grid.SetRow(tiles[i], i / 3); ((FrameworkElement)tiles[i]).Margin = new Thickness(0, 0, i % 3 == 2 ? 0 : 12, i < 3 ? 12 : 0); resources.Children.Add(tiles[i]); }
         stack.Children.Add(resources);
         return new ScrollViewer { Content = stack, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+    }
+
+    private static string EnergyCaption(Sample sample)
+    {
+        var package = sample.PackageWatts is { } watts ? $"Package {Format.Watts(watts)}" : "Package watts unavailable";
+        var battery = sample.BatteryWatts is { } rate ? $"Battery {Format.Watts(rate)} {(rate > 0 ? "discharging" : rate < 0 ? "charging" : "idle")}" : "Battery rate unavailable";
+        return $"{package} · {battery} · {sample.PowerSource}";
     }
 
     private UIElement Gauge(string title, Brush color, Func<Sample, double?> value, Func<Sample, string> caption)
@@ -76,7 +83,7 @@ internal sealed partial class MainWindow
         meter.ToolTip = title switch
         {
             "CPU" => "CPU utilization · 0–100%",
-            "Power" => "Package watts are unavailable without a vendor power counter",
+            "Power" => "CPU package power from the processor energy counter, scaled to 250 W",
             "Temp" => "CPU thermal zone when one is published; otherwise the hottest zone",
             "GPU" => "Busiest GPU engine",
             _ => title
