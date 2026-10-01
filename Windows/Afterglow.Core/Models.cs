@@ -74,6 +74,17 @@ public static class Format
         return $"{v:0.#} {units[i]}";
     }
     public static string Rate(double? n) => n is null ? "Unavailable" : Bytes(n) + "/s";
+    // Network counters are bytes per second. Link speed is shown in bits, using decimal Kbps and Mbps.
+    public static string Bits(double? bytesPerSecond)
+    {
+        if (bytesPerSecond is not { } bytes || !double.IsFinite(bytes) || bytes < 0) return "Unavailable";
+        var bits = bytes * 8;
+        if (bits == 0) return "0 Kbps";
+        if (bits < 1000) return $"{bits:0} bps";
+        if (bits < 1_000_000) return $"{bits / 1000:0.#} Kbps";
+        if (bits < 1_000_000_000) return $"{bits / 1_000_000:0.#} Mbps";
+        return $"{bits / 1_000_000_000:0.#} Gbps";
+    }
     public static string ZeroRate(double? n)
     {
         if (n is not { } v || !double.IsFinite(v)) return "Unavailable";

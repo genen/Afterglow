@@ -95,8 +95,8 @@ internal sealed partial class MainWindow
                 break;
             case "Network":
                 stack.Children.Add(Picker("Adapter", nicPick, NicNames(sample), value => nicPick = value));
-                stack.Children.Add(RateGraph("Network receive", s => PickedNic(s)?.Receive ?? (nicPick == "All" ? s.Receive : null), Theme.Network, s => PickedNic(s)?.Send ?? (nicPick == "All" ? s.Send : null), Theme.Energy));
-                stack.Children.Add(DetailReading(s => $"↓ {Format.Rate(nicPick == "All" ? s.Receive : PickedNic(s)?.Receive)}   ↑ {Format.Rate(nicPick == "All" ? s.Send : PickedNic(s)?.Send)}"));
+                stack.Children.Add(RateGraph("Network receive", s => PickedNic(s)?.Receive ?? (nicPick == "All" ? s.Receive : null), Theme.Network, s => PickedNic(s)?.Send ?? (nicPick == "All" ? s.Send : null), Theme.Energy, "bits"));
+                stack.Children.Add(DetailReading(s => $"↓ {Format.Bits(nicPick == "All" ? s.Receive : PickedNic(s)?.Receive)}   ↑ {Format.Bits(nicPick == "All" ? s.Send : PickedNic(s)?.Send)}"));
                 break;
             case "Energy":
                 var battery = GraphCard("Total power", s => s.PackageWatts ?? s.BatteryWatts, 0, Theme.Energy, "watts");
@@ -165,9 +165,9 @@ internal sealed partial class MainWindow
         return row;
     }
 
-    private Border RateGraph(string title, Func<Sample, double?> value, Brush stroke, Func<Sample, double?>? secondary, Brush secondaryStroke)
+    private Border RateGraph(string title, Func<Sample, double?> value, Brush stroke, Func<Sample, double?>? secondary, Brush secondaryStroke, string tag = "rate")
     {
-        var card = GraphCard(title, value, 0, stroke, "rate");
+        var card = GraphCard(title, value, 0, stroke, tag);
         graphs[^1].AutoScale = true;
         if (secondary is not null) { graphs[^1].SecondaryValue = secondary; graphs[^1].SecondaryStroke = secondaryStroke; }
         return card;

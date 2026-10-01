@@ -67,6 +67,7 @@ internal sealed class HistoryGraph : FrameworkElement
         "temp" => Format.Celsius(value),
         "percent" => Format.Percent(value),
         "rate" => Format.Rate(value),
+        "bits" => Format.Bits(value),
         _ => ceiling == 100 ? Format.Percent(value) : Format.Rate(value)
     };
 
