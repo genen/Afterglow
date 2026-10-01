@@ -28,7 +28,7 @@ Check("unknown creation refused", !CounterMath.CanTerminate(row with { Started =
 Check("replay refused", !CounterMath.CanTerminate(row, 100, 99, true));
 Check("unavailable differs from zero", Format.Bytes(null) == "Unavailable" && Format.Bytes(0) == "0 B");
 Check("memory is labeled in GB", Format.Bytes(1024d * 1024 * 1024) == "1 GB" && Format.Bytes(1024d * 1024) == "1 MB");
-Check("network speed is bits", Format.Bits(125) == "1 Kbps" && Format.Bits(125_000) == "1 Mbps" && Format.Bits(125_000_000) == "1 Gbps" && Format.Bits(null) == "Unavailable");
+Check("network speed is bits", Format.Bits(1_000) == "1 Kbps" && Format.Bits(1_000_000) == "1 Mbps" && Format.Bits(1_000_000_000) == "1 Gbps" && Format.Bits(null) == "Unavailable");
 Check("network adapters match interface bytes", Sensors.NetworkFrom([("Wi-Fi", 125_000), ("Loopback", 9), ("_Total", 1)], [("Wi-Fi", 1_000)]) is { Length: 1 } nics && nics[0].Receive == 125_000 && nics[0].Send == 1_000);
 Check("nonfinite display unavailable", Format.Percent(double.NaN) == "Unavailable");
 Check("CSV escapes quotes", Format.CsvField("a\"b") == "\"a\"\"b\"");
