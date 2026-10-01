@@ -189,11 +189,16 @@ public static class Sensors
     public static double? ThermalCelsius(double raw)
     {
         if (!double.IsFinite(raw) || raw <= 0) return null;
-        if (raw is >= 2531.5 and <= 3981.5) return raw / 10.0 - 273.15;
-        if (raw is >= 253.15 and <= 398.15) return raw - 273.15;
-        if (raw is <= 125) return raw;
-        var deci = raw / 10.0;
-        return raw <= 1250 && deci is >= -20 and <= 125 ? deci : null;
+        // A reading at 0 °C is the ACPI/PDH "no sensor" placeholder (2732 tenths of a Kelvin, or 273.15 K).
+        // A running PC does not report a real CPU temperature there, so it must not win over a live sensor.
+        double? celsius = raw switch
+        {
+            >= 2531.5 and <= 3981.5 => raw / 10.0 - 273.15,
+            >= 253.15 and <= 398.15 => raw - 273.15,
+            <= 125 => raw,
+            _ => raw <= 1250 ? raw / 10.0 : null
+        };
+        return celsius is >= 10 and <= 125 ? celsius : null;
     }
 
     public static bool IsPackageZone(string name)
@@ -233,7 +238,7 @@ public static class Sensors
         var map = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, celsius) in rows)
         {
-            if (string.IsNullOrWhiteSpace(name) || !double.IsFinite(celsius) || celsius is < -20 or > 125) continue;
+            if (string.IsNullOrWhiteSpace(name) || !double.IsFinite(celsius) || celsius is < 10 or > 125) continue;
             map[name] = celsius;
         }
         return FromMap(map);
@@ -259,7 +264,8 @@ public static class Sensors
     private static ThermalReading FromMap(Dictionary<string, double> map)
     {
         if (map.Count == 0) return new(null, null, [], []);
-        var ordered = map.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase).ToArray();
+        var ordered = map.Where(pair => pair.Value is >= 10 and <= 125).OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase).ToArray();
+        if (ordered.Length == 0) return new(null, null, [], []);
         var package = ordered.Where(pair => IsPackageZone(pair.Key)).ToArray();
         var chosen = package.Length > 0 ? package : ordered.Where(pair => IsCpuZone(pair.Key)).ToArray();
         if (chosen.Length == 0) chosen = ordered;
