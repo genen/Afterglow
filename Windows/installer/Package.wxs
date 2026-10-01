@@ -6,7 +6,7 @@
     <Icon Id="Afterglow.ico" SourceFile="..\Afterglow.Windows\Afterglow.ico" />
     <Property Id="ARPPRODUCTICON" Value="Afterglow.ico" />
     <Property Id="ARPCOMMENTS" Value="System monitor" />
-    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.EulaPath)" />
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
