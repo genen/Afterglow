@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using System.Globalization;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -9,6 +10,21 @@ namespace Afterglow.Windows;
 
 internal static class Inventory
 {
+    internal static string ProductVersion
+    {
+        get
+        {
+            var info = typeof(Inventory).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(info))
+            {
+                var plus = info.IndexOf('+');
+                return plus > 0 ? info[..plus] : info;
+            }
+            var version = typeof(Inventory).Assembly.GetName().Version;
+            return version is null ? "1.2 stable" : version.Major + "." + version.Minor + " stable";
+        }
+    }
+
     public static InfoRow[] Collect(string page, IReadOnlyDictionary<int, string>? processes = null) => page switch
     {
         "System Info" => SystemInfo(),
@@ -26,7 +42,7 @@ internal static class Inventory
         using var cpu = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0");
         using var bios = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\BIOS");
         var facts = MachineFacts.Current;
-        return [new("Afterglow", "Windows port", typeof(Inventory).Assembly.GetName().Version?.ToString(3) ?? "1.1.0"),
+        return [new("Afterglow", "Stable release", ProductVersion),
             new("Computer", "Host name", Environment.MachineName), new("Operating system", "Windows", RuntimeInformation.OSDescription),
             new("Processor", "Registry hardware description", cpu?.GetValue("ProcessorNameString")?.ToString()?.Trim() ?? "Unavailable"),
             new("Manufacturer", "System BIOS", bios?.GetValue("SystemManufacturer")?.ToString() ?? "Unavailable"),

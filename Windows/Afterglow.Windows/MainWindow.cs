@@ -287,15 +287,6 @@ internal sealed partial class MainWindow : Window
         try { WindowsCollector.Terminate(row, replay is not null); actionMessage = $"Ended {row.Name}."; _ = Tick(true); } catch (Exception ex) { Message(ex.Message); }
     }
 
-    private static string AppVersion
-    {
-        get
-        {
-            var version = typeof(MainWindow).Assembly.GetName().Version;
-            return version is null ? "1.1" : version.Major + "." + version.Minor;
-        }
-    }
-
     private void ShowSettings()
     {
         var dialog = new Window { Title = "Afterglow settings & colors", Owner = this, Width = 450, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize, Background = Theme.Background, Foreground = Theme.Foreground, WindowStartupLocation = WindowStartupLocation.CenterOwner };
@@ -313,7 +304,7 @@ internal sealed partial class MainWindow : Window
         panel.Children.Add(Text("Appearance", 14));
         var appearance = new ComboBox { ItemsSource = new[] { "Dark", "Light", "System" }, SelectedItem = settings.Appearance, Margin = new Thickness(0, 8, 0, 16), Foreground = Brushes.Black }; panel.Children.Add(appearance);
         var showSelf = new CheckBox { Content = "Show Afterglow in process lists", IsChecked = settings.ShowSelf, Margin = new Thickness(0, 5, 0, 16), Foreground = Theme.Foreground }; panel.Children.Add(showSelf);
-        panel.Children.Add(Text("Version " + AppVersion, 13, Theme.Muted));
+        panel.Children.Add(Text("Version " + Inventory.ProductVersion, 13, Theme.Muted));
         panel.Children.Add(Button("Save settings", (_, _) =>
         {
             var previousLight = settings.ResolvedLight;
