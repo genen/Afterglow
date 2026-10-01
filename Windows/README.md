@@ -27,10 +27,15 @@ Install the .NET 10 SDK, then from the project root:
 ```powershell
 ./Windows/scripts/build.ps1                  # self-contained win-x64 ZIP
 ./Windows/scripts/build.ps1 -Runtime win-arm64
+./Windows/scripts/build.ps1 -Stable
+./Windows/scripts/installer.ps1              # Afterglow-Setup-win-x64.msi
+./Windows/scripts/installer.ps1 -Runtime win-arm64
 ./Windows/scripts/test.ps1                   # core + native checks on x64
 # ARM64 native host:
 ./Windows/scripts/test.ps1 -AppPath ./Windows/artifacts/win-arm64/Afterglow.exe
 ```
+
+The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, and appears in Settings under Apps. It asks for administrator because Program Files and the sensor driver do. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
 
 Development: `dotnet run --project Windows/Afterglow.Windows`. Open `Windows/Afterglow.slnx` in a .NET 10-compatible IDE. `-FrameworkDependent` creates a smaller build requiring the matching .NET 10 Desktop Runtime. Use a clean output folder when changing publishing modes.
 

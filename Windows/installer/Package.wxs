@@ -1,0 +1,36 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Afterglow" Manufacturer="Afterglow" Version="$(var.Version)"
+           UpgradeCode="$(var.UpgradeCode)" Scope="perMachine" Compressed="yes">
+    <SummaryInformation Description="Afterglow system monitor" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Afterglow is already installed." />
+    <Icon Id="Afterglow.ico" SourceFile="..\Afterglow.Windows\Afterglow.ico" />
+    <Property Id="ARPPRODUCTICON" Value="Afterglow.ico" />
+    <Property Id="ARPCOMMENTS" Value="System monitor" />
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Afterglow">
+        <Files Include="$(var.PublishDir)**">
+          <Exclude Files="$(var.PublishDir)**\*.pdb" />
+          <Exclude Files="$(var.PublishDir)**\*.md" />
+        </Files>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut" Guid="8E4C1A70-2B55-4F19-9A6D-1C3E7B0A5D22">
+        <Shortcut Id="StartMenuAfterglow" Name="Afterglow" Description="System monitor"
+                  Target="[INSTALLFOLDER]Afterglow.exe" WorkingDirectory="INSTALLFOLDER" Icon="Afterglow.ico" />
+        <RegistryValue Root="HKMU" Key="Software\Afterglow" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="F19A6C33-0D47-4E82-B5A1-7C2D8E4F6A10">
+        <Shortcut Id="DesktopAfterglow" Name="Afterglow" Description="System monitor"
+                  Target="[INSTALLFOLDER]Afterglow.exe" WorkingDirectory="INSTALLFOLDER" Icon="Afterglow.ico" />
+        <RegistryValue Root="HKMU" Key="Software\Afterglow" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+  </Package>
+</Wix>
