@@ -29,9 +29,10 @@ internal sealed class CpuSensors : IDisposable
     private const string PawnIoSetup = "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/raw/refs/heads/master/LibreHardwareMonitor.Windows.Forms/Resources/PawnIO_setup.exe";
     private Computer? computer;
     private int pawnAttempt;
-    private PackagePower power = new(null);
+    private PackagePower power = new(null, null);
 
     public double? PackageWatts => Volatile.Read(ref power).Watts;
+    public string? PowerDetail => Volatile.Read(ref power).Detail;
 
     public (string Name, double Celsius)[] Read()
     {
@@ -55,7 +56,17 @@ internal sealed class CpuSensors : IDisposable
     {
         EnsurePawnIo();
         // Same walk as OpenHardwareMonitor: open the CPU, Update(), then read Temperature sensors.
-        var opened = new Computer { IsCpuEnabled = true, IsGpuEnabled = true, IsMotherboardEnabled = true };
+        var opened = new Computer
+        {
+            IsCpuEnabled = true,
+            IsGpuEnabled = true,
+            IsMotherboardEnabled = true,
+            IsMemoryEnabled = true,
+            IsStorageEnabled = true,
+            IsPsuEnabled = true,
+            IsPowerMonitorEnabled = true,
+            IsControllerEnabled = true
+        };
         opened.Open();
         return opened;
     }
@@ -101,44 +112,124 @@ internal sealed class CpuSensors : IDisposable
     private List<(string Name, double Celsius)> ReadOnce(Computer computer)
     {
         var rows = new List<(string Name, double Celsius)>();
-        double? package = null;
-        foreach (var hardware in computer.Hardware)
-        {
-            if (hardware.HardwareType is not (HardwareType.Cpu or HardwareType.Motherboard)) continue;
-            Visit(hardware, rows, ref package);
-        }
-        Volatile.Write(ref power, new PackagePower(package));
+        var parts = new List<(string Label, double Watts)>();
+        foreach (var hardware in computer.Hardware) Visit(hardware, rows, parts);
+        var supply = parts.Where(part => part.Label == "PSU").ToArray();
+        var components = parts.Where(part => part.Label != "PSU").ToArray();
+        double? total = supply.Length > 0 ? supply.Sum(part => part.Watts) : components.Length > 0 ? components.Sum(part => part.Watts) : null;
+        var detailParts = supply.Length > 0 ? supply.Concat(components) : components;
+        var detail = detailParts.Any() ? string.Join(" · ", detailParts.Select(part => $"{part.Label} {Format.Watts(part.Watts)}")) : null;
+        Volatile.Write(ref power, new PackagePower(total, detail));
         return rows;
     }
 
-    private static void Visit(IHardware hardware, List<(string Name, double Celsius)> rows, ref double? package)
+    private static void Visit(IHardware hardware, List<(string Name, double Celsius)> rows, List<(string Label, double Watts)> parts)
     {
         hardware.Update();
+        if (hardware.HardwareType != HardwareType.Battery) CollectPower(hardware, parts);
         foreach (var sensor in hardware.Sensors)
         {
-            if (sensor.Value is not float value || float.IsNaN(value) || float.IsInfinity(value)) continue;
-            var name = string.IsNullOrWhiteSpace(sensor.Name) ? "" : sensor.Name;
-            // Open Hardware Monitor: watts = energyUnit * (energyCounter - previous) / seconds.
-            // LibreHardwareMonitor already performs that delta on the RAPL package counter.
-            if (sensor.SensorType == SensorType.Power && hardware.HardwareType == HardwareType.Cpu && IsPackagePower(name) && value is >= 0.05f and <= 1000f)
-                package = (package ?? 0) + value;
-            if (sensor.SensorType != SensorType.Temperature || value is < 10 or > 125) continue;
-            if (string.IsNullOrWhiteSpace(name)) name = "CPU";
+            if (hardware.HardwareType is not (HardwareType.Cpu or HardwareType.Motherboard)) break;
+            if (sensor.SensorType != SensorType.Temperature || sensor.Value is not float value || float.IsNaN(value) || float.IsInfinity(value) || value is < 10 or > 125) continue;
+            var name = string.IsNullOrWhiteSpace(sensor.Name) ? "CPU" : sensor.Name;
             if (name.Contains("distance", StringComparison.OrdinalIgnoreCase) || name.Contains("tjmax", StringComparison.OrdinalIgnoreCase)) continue;
             if (hardware.HardwareType == HardwareType.Motherboard && !Sensors.IsCpuZone(name)) continue;
             rows.Add((hardware.HardwareType == HardwareType.Motherboard ? hardware.Name + " " + name : name, value));
         }
-        foreach (var sub in hardware.SubHardware) Visit(sub, rows, ref package);
+        foreach (var sub in hardware.SubHardware) Visit(sub, rows, parts);
     }
 
-    private static bool IsPackagePower(string name)
+    private static void CollectPower(IHardware hardware, List<(string Label, double Watts)> parts)
+    {
+        var sensors = hardware.Sensors
+            .Where(sensor => sensor.SensorType == SensorType.Power && sensor.Value is float value && !float.IsNaN(value) && !float.IsInfinity(value) && value is >= 0.05f and <= 2000f)
+            .Select(sensor => (Name: sensor.Name ?? "", Watts: (double)sensor.Value!.Value))
+            .Where(sensor => !SkipPower(sensor.Name))
+            .ToArray();
+        if (sensors.Length == 0) return;
+        var supply = sensors.Where(sensor => IsSupplyTotal(sensor.Name)).ToArray();
+        if (supply.Length > 0)
+        {
+            parts.Add(("PSU", supply.Max(sensor => sensor.Watts)));
+            sensors = sensors.Where(sensor => !IsSupplyTotal(sensor.Name)).ToArray();
+            if (sensors.Length == 0) return;
+        }
+        switch (hardware.HardwareType)
+        {
+            case HardwareType.Cpu:
+                AddCpu(sensors, parts);
+                break;
+            case HardwareType.GpuNvidia:
+            case HardwareType.GpuAmd:
+            case HardwareType.GpuIntel:
+                if (Best(sensors, IsGpuTotal) is { } gpu) parts.Add((NextLabel(parts, "GPU"), gpu));
+                break;
+            case HardwareType.Psu:
+                break;
+            default:
+                if (parts.Any(part => part.Label == "CPU")) sensors = sensors.Where(sensor => !IsCpuName(sensor.Name)).ToArray();
+                if (parts.Any(part => part.Label == "Memory")) sensors = sensors.Where(sensor => !IsMemoryPower(sensor.Name)).ToArray();
+                if (parts.Any(part => part.Label.StartsWith("GPU", StringComparison.Ordinal))) sensors = sensors.Where(sensor => !IsGpuName(sensor.Name)).ToArray();
+                foreach (var sensor in sensors)
+                    parts.Add((Trim(sensor.Name), sensor.Watts));
+                break;
+        }
+    }
+
+    private static void AddCpu((string Name, double Watts)[] sensors, List<(string Label, double Watts)> parts)
+    {
+        var package = sensors.Where(sensor => sensor.Name.Contains("package", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (package.Length == 0) package = sensors.Where(sensor => sensor.Name.Contains("ppt", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (package.Length == 0) package = sensors.Where(sensor => sensor.Name.Equals("CPU Total", StringComparison.OrdinalIgnoreCase) || sensor.Name.Equals("Package", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (package.Length > 0) parts.Add(("CPU", package.Sum(sensor => sensor.Watts)));
+        else
+        {
+            var rest = sensors.Where(sensor => !IsMemoryPower(sensor.Name)).Sum(sensor => sensor.Watts);
+            if (rest >= 0.05) parts.Add(("CPU", rest));
+        }
+        var memory = sensors.Where(sensor => IsMemoryPower(sensor.Name)).Sum(sensor => sensor.Watts);
+        if (memory >= 0.05) parts.Add(("Memory", memory));
+    }
+
+    private static double? Best((string Name, double Watts)[] sensors, Func<string, bool> match)
+    {
+        var found = sensors.Where(sensor => match(sensor.Name)).ToArray();
+        return found.Length == 0 ? null : found.Max(sensor => sensor.Watts);
+    }
+
+    private static bool IsGpuTotal(string name)
     {
         var text = name.ToLowerInvariant();
-        return text.Contains("package") && !text.Contains("limit");
+        if (text.Contains("package") || text.Contains("board") || text.Contains("ppt")) return true;
+        return text is "gpu power" or "gpu total";
     }
+
+    private static bool IsMemoryPower(string name)
+    {
+        var text = name.ToLowerInvariant();
+        return text.Contains("dram") || text is "memory" || text.Contains("cpu memory");
+    }
+
+    private static bool IsSupplyTotal(string name)
+    {
+        var text = name.ToLowerInvariant();
+        return text is "psu out" or "total output" or "total watts" or "total power" || text.Contains("total output");
+    }
+
+    private static bool SkipPower(string name)
+    {
+        var text = name.ToLowerInvariant();
+        return text.Contains("limit") || text.Contains("pin") || text.Contains("efficiency") || text.Contains("vrm") || text.Contains("input") || text.Contains("auxiliary") || text.Contains("vcore");
+    }
+
+    private static bool IsCpuName(string name) => name.Contains("cpu", StringComparison.OrdinalIgnoreCase) || name.Contains("package", StringComparison.OrdinalIgnoreCase);
+    private static bool IsGpuName(string name) => name.Contains("gpu", StringComparison.OrdinalIgnoreCase);
+    private static string NextLabel(List<(string Label, double Watts)> parts, string label) => parts.Any(part => part.Label == label) ? label + " " + (parts.Count(part => part.Label.StartsWith(label, StringComparison.Ordinal)) + 1) : label;
+    private static string Trim(string name) => name.Length <= 24 ? name : name[..24];
 }
 
-internal sealed class PackagePower(double? watts)
+internal sealed class PackagePower(double? watts, string? detail)
 {
     public double? Watts { get; } = watts;
+    public string? Detail { get; } = detail;
 }

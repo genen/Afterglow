@@ -26,7 +26,7 @@ public sealed record Sample(DateTimeOffset Time, double? Cpu, double? Kernel, do
     double? GpuDecode = null, double? GpuEncode = null, double? GpuMemory = null, double? Cached = null,
     double? Committed = null, double? CommitLimit = null, double? PageFile = null, int Pressure = 0,
     double? DiskBusy = null, double? Temperature = null, double? TempMin = null, double[]? Temps = null,
-    string[]? TempNames = null, double? BatteryWatts = null, double? Frequency = null, string? TopMemory = null, double? PackageWatts = null);
+    string[]? TempNames = null, double? BatteryWatts = null, double? Frequency = null, string? TopMemory = null, double? PackageWatts = null, string? PowerDetail = null);
 
 public sealed record Frame(Sample Sample, ProcessRow[] Processes);
 public sealed record InfoRow(string Name, string Detail, string Value, string Path = "");

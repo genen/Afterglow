@@ -277,7 +277,7 @@ internal static class Inventory
             new("Battery", "Reported charge", ok && p.BatteryPercent <= 100 && (p.BatteryFlag & 128) == 0 ? $"{p.BatteryPercent}%" : "Unavailable"),
             new("Energy saver", "System power policy", !ok ? "Unavailable" : p.SystemStatus == 1 ? "Enabled" : "Disabled"),
             new("CPU nominal frequency", "Registry value; the live clock is shown above when PDH reports it", cpu?.GetValue("~MHz") is int mhz ? $"{mhz} MHz" : "Unavailable"),
-            new("Package power", "Processor package energy counter, converted to watts", "Shown live when the sensor can be read. Battery rate is separate."),
+            new("Total power", "CPU package, memory, GPU, motherboard, storage, and PSU output", "Shown live. Core and pin sensors are not added on top of a package total."),
             new("Battery rate", "SYSTEM_BATTERY_STATE.Rate when a battery is present", "Shown live on this page. Positive means discharging. This is not package power."),
             new("Temperature", "CPU package sensor, then ACPI thermal zones", "Shown live when a sensor can be read."),
             new("GPU utilization", "PDH GPU Engine", "Shown live when the driver publishes engine counters."),

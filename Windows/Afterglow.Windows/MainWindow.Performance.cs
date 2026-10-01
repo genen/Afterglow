@@ -63,7 +63,7 @@ internal sealed partial class MainWindow
         "NPU 0" => _ => null,
         "Disks" => s => s.DiskBusy / 100,
         "Network" => s => (s.Receive + s.Send) / 12_500_000,
-        "Energy" => s => s.PackageWatts is { } package ? package / 250 : s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null,
+        "Energy" => s => s.PackageWatts is { } package ? package / 750 : s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null,
         "Thermals" => s => s.Temperature / 100,
         _ => _ => null
     };
@@ -99,7 +99,7 @@ internal sealed partial class MainWindow
                 stack.Children.Add(DetailReading(s => $"↓ {Format.Rate(nicPick == "All" ? s.Receive : PickedNic(s)?.Receive)}   ↑ {Format.Rate(nicPick == "All" ? s.Send : PickedNic(s)?.Send)}"));
                 break;
             case "Energy":
-                var battery = GraphCard("Package power", s => s.PackageWatts ?? s.BatteryWatts, 0, Theme.Energy, "watts");
+                var battery = GraphCard("Total power", s => s.PackageWatts ?? s.BatteryWatts, 0, Theme.Energy, "watts");
                 graphs[^1].AutoScale = true;
                 stack.Children.Add(battery);
                 stack.Children.Add(DetailReading(EnergyCaption));
@@ -183,8 +183,9 @@ internal sealed partial class MainWindow
     {
         var panel = new DockPanel { Margin = new Thickness(22, 0, 22, 20) };
         var live = new StackPanel { Margin = new Thickness(0, 0, 0, 16) };
-        live.Children.Add(Text("Package power", 16));
-        live.Children.Add(Reading(s => s.PackageWatts is { } watts ? $"{Format.Watts(watts)} · CPU package" : "Package watts unavailable", 18, Theme.Energy));
+        live.Children.Add(Text("Total power", 16));
+        live.Children.Add(Reading(s => s.PackageWatts is { } watts ? Format.Watts(watts) : "Measured power unavailable", 18, Theme.Energy));
+        live.Children.Add(DetailReading(s => string.IsNullOrWhiteSpace(s.PowerDetail) ? "CPU package, memory, GPU, motherboard, storage, and PSU sensors are included when they report watts." : s.PowerDetail));
         live.Children.Add(Text("Battery", 16));
         live.Children.Add(Reading(s => s.BatteryWatts is { } watts
             ? $"{Format.Watts(watts)} · {(watts > 0 ? "discharging" : watts < 0 ? "charging" : "idle")} · {s.PowerSource}{(s.BatteryPercent is { } percent ? $" · {percent:0}%" : "")}"
