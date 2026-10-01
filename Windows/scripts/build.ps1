@@ -1,6 +1,7 @@
 param(
     [ValidateSet('win-x64', 'win-arm64')][string]$Runtime = 'win-x64',
-    [switch]$FrameworkDependent
+    [switch]$FrameworkDependent,
+    [switch]$Stable
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -12,12 +13,14 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $projectText = [System.IO.File]::ReadAllText($project)
 if ($projectText -notmatch '<Version>(\d+)\.(\d+)\.\d+</Version>') { throw 'Version element was not found in Afterglow.Windows.csproj.' }
 $major = [int]$Matches[1]
-$minor = [int]$Matches[2] + 1
+$minor = [int]$Matches[2]
+if (-not $Stable) { $minor += 1 }
+$channel = if ($Stable) { 'stable' } else { 'beta' }
 $projectText = [regex]::Replace($projectText, '<Version>\d+\.\d+\.\d+</Version>', "<Version>$major.$minor.0</Version>", 1)
-$projectText = [regex]::Replace($projectText, '<InformationalVersion>[^<]*</InformationalVersion>', "<InformationalVersion>$major.$minor stable</InformationalVersion>", 1)
+$projectText = [regex]::Replace($projectText, '<InformationalVersion>[^<]*</InformationalVersion>', "<InformationalVersion>$major.$minor $channel</InformationalVersion>", 1)
 $utf8 = New-Object System.Text.UTF8Encoding $false
 [System.IO.File]::WriteAllText($project, $projectText, $utf8)
-Write-Output "Version $major.$minor stable"
+Write-Output "Version $major.$minor $channel"
 dotnet publish $project -c Release -r $Runtime --self-contained $selfContained -o $output
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 $readme = (Get-Content (Join-Path $root 'README.md') -Raw).Replace('../docs/WINDOWS-PORT.md', 'WINDOWS-PORT.md')

@@ -14,8 +14,14 @@ internal static class Inventory
     {
         get
         {
+            var info = typeof(Inventory).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(info))
+            {
+                var plus = info.IndexOf('+');
+                return plus > 0 ? info[..plus] : info;
+            }
             var version = typeof(Inventory).Assembly.GetName().Version;
-            return version is null ? "1.2 stable" : version.Major + "." + version.Minor + " stable";
+            return version is null ? "1.2 stable" : version.Major + "." + version.Minor + " beta";
         }
     }
 
