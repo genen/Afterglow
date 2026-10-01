@@ -158,11 +158,20 @@ internal sealed partial class MainWindow
         var grid = GridTable(); grid.Height = 244; grid.RowHeight = 18; grid.FontSize = 10; grid.FontFamily = new FontFamily("Consolas"); grid.ColumnHeaderHeight = 22;
         grid.Background = Theme.Panel; grid.RowBackground = Theme.Panel; grid.AlternatingRowBackground = Theme.RowAlt;
         var header = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader), (Style)Application.Current.FindResource(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader)));
-        header.Setters.Add(new Setter(Control.BackgroundProperty, Theme.Panel)); header.Setters.Add(new Setter(Control.FontSizeProperty, 9d)); header.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(2, 2, 2, 2))); header.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(0))); grid.ColumnHeaderStyle = header;
+        header.Setters.Add(new Setter(Control.BackgroundProperty, Theme.Panel)); header.Setters.Add(new Setter(Control.FontSizeProperty, 9d)); header.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(2, 2, 2, 2))); header.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(0))); header.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Right)); grid.ColumnHeaderStyle = header;
         ScrollViewer.SetHorizontalScrollBarVisibility(grid, ScrollBarVisibility.Disabled); ScrollViewer.SetVerticalScrollBarVisibility(grid, ScrollBarVisibility.Disabled);
+        Style Right(Brush? color = null)
+        {
+            var style = new Style(typeof(TextBlock));
+            style.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Right));
+            style.Setters.Add(new Setter(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Stretch));
+            if (color is not null) style.Setters.Add(new Setter(TextBlock.ForegroundProperty, color));
+            return style;
+        }
         Column(grid, "PID", "Pid", 45); Column(grid, "Name", "Name", 1, true); Column(grid, "CPU", "CpuText", 60, sort: "Cpu");
-        var cpuText = new Style(typeof(TextBlock)); cpuText.Setters.Add(new Setter(TextBlock.ForegroundProperty, Theme.Cpu)); ((DataGridTextColumn)grid.Columns[^1]).ElementStyle = cpuText;
         Column(grid, "GPU", "GpuText", 52, sort: "Gpu");
-        Column(grid, "Memory", "MemoryText", 72, sort: "Memory"); return grid;
+        Column(grid, "Memory", "MemoryText", 72, sort: "Memory");
+        for (var i = 0; i < grid.Columns.Count; i++) ((DataGridTextColumn)grid.Columns[i]).ElementStyle = Right(i == 2 ? Theme.Cpu : null);
+        return grid;
     }
 }
