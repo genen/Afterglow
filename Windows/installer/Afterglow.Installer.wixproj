@@ -3,6 +3,8 @@
     <OutputType>Package</OutputType>
     <InstallerPlatform Condition="'$(InstallerPlatform)' == ''">x64</InstallerPlatform>
     <OutputName>Afterglow</OutputName>
+    <!-- ProgramMenuFolder and DesktopFolder are per-user names. Scope=perMachine redirects them to the all-users folders, which ICE57 does not understand. -->
+    <SuppressIces>ICE57</SuppressIces>
     <DefineConstants>Version=$(ProductVersion);PublishDir=$(PublishDir);UpgradeCode=$(UpgradeCode)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
