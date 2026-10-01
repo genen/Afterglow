@@ -3,6 +3,7 @@
            UpgradeCode="$(var.UpgradeCode)" Scope="perMachine" Compressed="yes">
     <SummaryInformation Description="Afterglow system monitor" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of Afterglow is already installed." />
+    <MediaTemplate EmbedCab="yes" />
     <Icon Id="Afterglow.ico" SourceFile="..\Afterglow.Windows\Afterglow.ico" />
     <Property Id="ARPPRODUCTICON" Value="Afterglow.ico" />
     <Property Id="ARPCOMMENTS" Value="System monitor" />

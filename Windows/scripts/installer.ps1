@@ -27,6 +27,7 @@ $built = Join-Path $out 'Afterglow.msi'
 $named = Join-Path $out "Afterglow-Setup-$Runtime.msi"
 if (-not (Test-Path $built)) { throw "WiX did not write $built." }
 Move-Item $built $named -Force
+Get-ChildItem $out -File | Where-Object { $_.Extension -in '.cab', '.pdb', '.wixpdb' } | Remove-Item -Force
 $payload = [System.IO.File]::ReadAllText($named)
 if ($payload -notlike '*Take Two Partners*') { throw 'The setup was built without the Take Two Partners license. The old license file is still being used.' }
 Write-Output "Built $named"
