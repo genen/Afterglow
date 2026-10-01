@@ -30,12 +30,13 @@ internal sealed class CpuSensors : IDisposable
     private Computer? computer;
     private int pawnAttempt;
     private PackagePower power = new(null, null);
-    private string? gpuTemperature;
+    private GpuReading gpu = new(null, null);
     private bool sawGpu;
 
     public double? PackageWatts => Volatile.Read(ref power).Watts;
     public string? PowerDetail => Volatile.Read(ref power).Detail;
-    public string? GpuTemperature => Volatile.Read(ref gpuTemperature);
+    public string? GpuTemperature => Volatile.Read(ref gpu).Text;
+    public double? GpuCelsius => Volatile.Read(ref gpu).Celsius;
 
     public (string Name, double Celsius)[] Read()
     {
@@ -125,7 +126,7 @@ internal sealed class CpuSensors : IDisposable
         var detailParts = supply.Length > 0 ? supply.Concat(components) : components;
         var detail = detailParts.Any() ? string.Join(" · ", detailParts.Select(part => $"{part.Label} {Format.Watts(part.Watts)}")) : null;
         Volatile.Write(ref power, new PackagePower(total, detail));
-        Volatile.Write(ref gpuTemperature, gpuTemps.Count == 0 ? null : string.Join(" · ", gpuTemps.Select((celsius, index) => $"{(gpuTemps.Count == 1 ? "GPU" : "GPU " + (index + 1))} {Format.Celsius(celsius)}")));
+        Volatile.Write(ref gpu, new GpuReading(gpuTemps.Count == 0 ? null : gpuTemps.Max(), gpuTemps.Count == 0 ? null : string.Join(" · ", gpuTemps.Select((celsius, index) => $"{(gpuTemps.Count == 1 ? "GPU" : "GPU " + (index + 1))} {Format.Celsius(celsius)}"))));
         return rows;
     }
 
@@ -249,6 +250,12 @@ internal sealed class CpuSensors : IDisposable
     private static bool IsGpuName(string name) => name.Contains("gpu", StringComparison.OrdinalIgnoreCase);
     private static string NextLabel(List<(string Label, double Watts)> parts, string label) => parts.Any(part => part.Label == label) ? label + " " + (parts.Count(part => part.Label.StartsWith(label, StringComparison.Ordinal)) + 1) : label;
     private static string Trim(string name) => name.Length <= 24 ? name : name[..24];
+}
+
+internal sealed class GpuReading(double? celsius, string? text)
+{
+    public double? Celsius { get; } = celsius;
+    public string? Text { get; } = text;
 }
 
 internal sealed class PackagePower(double? watts, string? detail)

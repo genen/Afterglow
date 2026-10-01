@@ -95,7 +95,7 @@ internal sealed class WindowsCollector : IDisposable
             disks.Disks.Length == 0 ? null : disks.Disks.Select(disk => new DeviceSample(disk.Name, disk.Name, null, null, disk.Read, disk.Write, disk.Busy)).ToArray(),
             gpu.Utilization, gpu.Name, gpu.ThreeD, gpu.Copy, gpu.Compute, gpu.Decode, gpu.Encode, gpu.Dedicated,
             cached, committed, commitLimit, page, Sensors.Pressure(available, total), diskBusy, hotspot, tempMin,
-            thermal.Temps, thermal.Names, BatteryWatts(), frequency, topMemory is null ? null : $"{topMemory.Name} · {Format.Bytes(topMemory.Memory)}", cpuSensors.PackageWatts, cpuSensors.PowerDetail, cpuSensors.GpuTemperature);
+            thermal.Temps, thermal.Names, BatteryWatts(), frequency, topMemory is null ? null : $"{topMemory.Name} · {Format.Bytes(topMemory.Memory)}", cpuSensors.PackageWatts, cpuSensors.PowerDetail, cpuSensors.GpuTemperature, cpuSensors.GpuCelsius);
         return new(sample, rows);
     }
 

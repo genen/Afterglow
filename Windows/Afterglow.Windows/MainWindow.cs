@@ -94,7 +94,7 @@ internal sealed partial class MainWindow : Window
         var current = Current; if (current is null) return; var s = current.Sample;
         foreach (var (label, value) in readings) label.Text = value(s);
         EnsurePicks(s);
-        foreach (var (meter, value) in meters) meter.Fraction = value(s);
+        foreach (var (meter, value, overlay) in meters) { meter.Fraction = value(s); if (overlay is not null) meter.OverlayFraction = overlay(s); }
         foreach (var (meter, value) in compactMeters) meter.Fraction = value(s);
         foreach (var graph in graphs) { graph.Samples = History; if (graph.Tag as string == "memory") graph.Ceiling = Math.Max(s.Total ?? 1, 1); graph.InvalidateVisual(); }
         if (compactGraph is not null) { compactGraph.Samples = History; compactGraph.InvalidateVisual(); }

@@ -13,21 +13,38 @@ namespace Afterglow.Windows;
 internal sealed class VfdMeter : FrameworkElement
 {
     public static readonly DependencyProperty LevelProperty = DependencyProperty.Register(nameof(Level), typeof(double), typeof(VfdMeter), new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender));
+    public static readonly DependencyProperty OverlayLevelProperty = DependencyProperty.Register(nameof(OverlayLevel), typeof(double), typeof(VfdMeter), new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender));
     public double Level { get => (double)GetValue(LevelProperty); set => SetValue(LevelProperty, value); }
+    public double OverlayLevel { get => (double)GetValue(OverlayLevelProperty); set => SetValue(OverlayLevelProperty, value); }
     public bool Vertical { get; init; }
     public int Cells { get; init; } = 22;
     public Brush Tone { get; init; } = Theme.Cpu;
+    public Brush? OverlayTone { get; init; }
     private double? fraction;
+    private double? overlayFraction;
     public double? Fraction
     {
         set
         {
             if (fraction == value) return;
             fraction = value;
-            var next = value is { } n && double.IsFinite(n) ? Math.Clamp(n, 0, 1) : 0;
-            if (value is null || !IsLoaded) { BeginAnimation(LevelProperty, null); Level = next; InvalidateVisual(); return; }
-            BeginAnimation(LevelProperty, new DoubleAnimation(Level, next, TimeSpan.FromSeconds(.28)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+            Animate(LevelProperty, value);
         }
+    }
+    public double? OverlayFraction
+    {
+        set
+        {
+            if (overlayFraction == value) return;
+            overlayFraction = value;
+            Animate(OverlayLevelProperty, value);
+        }
+    }
+    private void Animate(DependencyProperty property, double? value)
+    {
+        var next = value is { } n && double.IsFinite(n) ? Math.Clamp(n, 0, 1) : 0;
+        if (value is null || !IsLoaded) { BeginAnimation(property, null); SetValue(property, next); InvalidateVisual(); return; }
+        BeginAnimation(property, new DoubleAnimation((double)GetValue(property), next, TimeSpan.FromSeconds(.28)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
     }
     protected override void OnRender(DrawingContext dc)
     {
@@ -37,14 +54,17 @@ internal sealed class VfdMeter : FrameworkElement
         var height = Vertical ? Math.Max(1, (ActualHeight - (Cells - 1) * gap) / Cells) : ActualHeight;
         for (var i = 0; i < Cells; i++)
         {
-            var on = fraction is not null && i / (double)Cells < Level;
+            var cpuOn = fraction is not null && i / (double)Cells < Level;
+            var gpuOn = overlayFraction is not null && OverlayTone is not null && i / (double)Cells < OverlayLevel;
+            var tone = gpuOn ? OverlayTone : Tone;
+            var on = cpuOn || gpuOn;
             var rect = new Rect(Vertical ? 0 : i * (width + gap), Vertical ? (Cells - 1 - i) * (height + gap) : 0, width, height);
             if (on && Theme.Bloom)
             {
-                dc.DrawRoundedRectangle(null, new Pen(Theme.Alpha(Tone, .08), 8), rect, 2, 2);
-                dc.DrawRoundedRectangle(null, new Pen(Theme.Alpha(Tone, .18), 4), rect, 2, 2);
+                dc.DrawRoundedRectangle(null, new Pen(Theme.Alpha(tone, .08), 8), rect, 2, 2);
+                dc.DrawRoundedRectangle(null, new Pen(Theme.Alpha(tone, .18), 4), rect, 2, 2);
             }
-            dc.DrawRoundedRectangle(Theme.Alpha(Tone, on ? .95 : .10), new Pen(Theme.Alpha(Tone, on ? .95 : .16), .6), rect, 1.4, 1.4);
+            dc.DrawRoundedRectangle(Theme.Alpha(tone, on ? .95 : .10), new Pen(Theme.Alpha(tone, on ? .95 : .16), .6), rect, 1.4, 1.4);
         }
     }
 }

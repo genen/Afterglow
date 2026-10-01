@@ -7,7 +7,7 @@ namespace Afterglow.Windows;
 
 internal sealed partial class MainWindow
 {
-    private readonly List<(VfdMeter Meter, Func<Sample, double?> Value)> meters = [];
+    private readonly List<(VfdMeter Meter, Func<Sample, double?> Value, Func<Sample, double?>? Overlay)> meters = [];
     private readonly List<(VfdMeter Meter, Func<Sample, double?> Value)> compactMeters = [];
     private HistoryGraph? compactGraph;
     private RibbonView? ribbon;
@@ -60,7 +60,7 @@ internal sealed partial class MainWindow
             Resource("Energy", "Energy", Theme.Energy, s => s.PackageWatts is { } package ? Format.Watts(package) : s.BatteryWatts is null ? "Unavailable" : Format.Watts(s.BatteryWatts), s => EnergyCaption(s), s => s.PackageWatts is { } package ? package / 750 : s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null),
             Resource("GPU 0", "Window", Theme.Gpu, s => s.Gpu is null ? "Unavailable" : Format.Percent(s.Gpu), s => s.Gpu is null ? "GPU utilization unavailable" : $"{s.GpuName ?? "GPU"} · dedicated {Format.Bytes(s.GpuMemory)}", s => s.Gpu / 100),
             Resource("NPU 0", "CPU", Theme.Npu, _ => "Unavailable", _ => "No generic NPU counter", _ => null),
-            Resource("Thermals", "Thermals", Theme.Thermal, s => s.Temperature is null ? "Unavailable" : Format.Celsius(s.Temperature), ThermalLine, s => s.Temperature / 100, wrap: true)
+            Resource("Thermals", "Thermals", Theme.Thermal, s => s.Temperature is null ? "Unavailable" : Format.Celsius(s.Temperature), ThermalLine, s => s.Temperature / 100, "Orange is the CPU temperature. The GPU color is drawn over it on the same bar.", true, s => s.GpuCelsius / 100, Theme.Gpu)
         ];
         for (var i = 0; i < tiles.Length; i++) { Grid.SetColumn(tiles[i], i % 3); Grid.SetRow(tiles[i], i / 3); ((FrameworkElement)tiles[i]).Margin = new Thickness(0, 0, i % 3 == 2 ? 0 : 12, i < 3 ? 12 : 0); resources.Children.Add(tiles[i]); }
         stack.Children.Add(resources);
@@ -102,9 +102,12 @@ internal sealed partial class MainWindow
     {
         var text = Text(Current is { } f ? value(f.Sample) : "—", size, color); text.FontFamily = new FontFamily("Consolas"); text.TextWrapping = TextWrapping.NoWrap; text.TextTrimming = TextTrimming.CharacterEllipsis; readings.Add((text, value)); return text;
     }
-    private VfdMeter Meter(Func<Sample, double?> value, Brush color, bool vertical, double height, int cells = 22)
+    private VfdMeter Meter(Func<Sample, double?> value, Brush color, bool vertical, double height, int cells = 22, Func<Sample, double?>? overlay = null, Brush? overlayTone = null)
     {
-        var meter = new VfdMeter { Tone = color, Vertical = vertical, Height = height, Cells = cells }; meter.Fraction = Current is { } f ? value(f.Sample) : null; meters.Add((meter, value)); return meter;
+        var meter = new VfdMeter { Tone = color, OverlayTone = overlayTone, Vertical = vertical, Height = height, Cells = cells };
+        meter.Fraction = Current is { } f ? value(f.Sample) : null;
+        if (overlay is not null) meter.OverlayFraction = Current is { } frame ? overlay(frame.Sample) : null;
+        meters.Add((meter, value, overlay)); return meter;
     }
     private UIElement CardHeading(string title, string symbol, Brush color, Func<Sample, string>? value = null, double size = 16)
     {
@@ -117,13 +120,13 @@ internal sealed partial class MainWindow
         var icon = new Symbol(symbol, color) { Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center }; DockPanel.SetDock(icon, Dock.Left); row.Children.Add(icon);
         var name = Text(title, size); name.FontWeight = FontWeights.Medium; name.Margin = new Thickness(0); name.TextWrapping = TextWrapping.NoWrap; name.TextTrimming = TextTrimming.CharacterEllipsis; row.Children.Add(name); return row;
     }
-    private Border Resource(string title, string icon, Brush color, Func<Sample, string> value, Func<Sample, string> detail, Func<Sample, double?> fraction, string? tooltip = null, bool wrap = false)
+    private Border Resource(string title, string icon, Brush color, Func<Sample, string> value, Func<Sample, string> detail, Func<Sample, double?> fraction, string? tooltip = null, bool wrap = false, Func<Sample, double?>? overlay = null, Brush? overlayTone = null)
     {
         var stack = new StackPanel(); stack.Children.Add(CardHeading(title, icon, color, value, 15));
         var caption = Reading(detail, 10, Theme.Muted); caption.FontFamily = new FontFamily("Segoe UI"); caption.Margin = new Thickness(0, 0, 0, 8);
         if (wrap) { caption.TextWrapping = TextWrapping.Wrap; caption.TextTrimming = TextTrimming.None; }
         stack.Children.Add(caption);
-        var meter = Meter(fraction, color, false, 14); meter.ToolTip = tooltip ?? "Unavailable readings leave meter segments unlit"; stack.Children.Add(meter); return Card(stack);
+        var meter = Meter(fraction, color, false, 14, overlay: overlay, overlayTone: overlayTone); meter.ToolTip = tooltip ?? "Unavailable readings leave meter segments unlit"; stack.Children.Add(meter); return Card(stack);
     }
     private HistoryGraph NewGraph(Func<Sample, double?> value, double ceiling, Brush stroke, double height)
     {
