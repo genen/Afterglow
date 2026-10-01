@@ -138,7 +138,7 @@ internal sealed partial class MainWindow
     {
         var temps = sample.Temps ?? [];
         var names = sample.TempNames ?? [];
-        if (temps.Length == 0 || names.Length != temps.Length) return sample.Temperature is null ? "No thermal zones reported." : $"Hotspot {Format.Celsius(sample.Temperature)} · min {Format.Celsius(sample.TempMin)}";
+        if (temps.Length == 0 || names.Length != temps.Length) return sample.Temperature is null ? SensorAccess.Unavailable : $"Hotspot {Format.Celsius(sample.Temperature)} · min {Format.Celsius(sample.TempMin)}";
         return string.Join("\n", temps.Select((temp, index) => $"{names[index]}: {Format.Celsius(temp)}"));
     }
     private static string[] DiskNames(Sample? sample) => ["All", .. (sample?.Disks ?? []).Select(disk => disk.Name).Distinct()];

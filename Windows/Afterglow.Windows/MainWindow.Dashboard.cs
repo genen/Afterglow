@@ -60,7 +60,7 @@ internal sealed partial class MainWindow
             Resource("Energy", "Energy", Theme.Energy, s => s.BatteryWatts is null ? "Unavailable" : Format.Watts(s.BatteryWatts), s => s.BatteryWatts is { } watts ? $"Battery {(watts > 0 ? "discharging" : watts < 0 ? "charging" : "idle")} · {s.PowerSource}" : $"Package watts unavailable · {s.PowerSource}", s => s.BatteryWatts is { } watts ? Math.Abs(watts) / 100 : null),
             Resource("GPU 0", "Window", Theme.Gpu, s => s.Gpu is null ? "Unavailable" : Format.Percent(s.Gpu), s => s.Gpu is null ? "GPU utilization unavailable" : $"{s.GpuName ?? "GPU"} · dedicated {Format.Bytes(s.GpuMemory)}", s => s.Gpu / 100),
             Resource("NPU 0", "CPU", Theme.Npu, _ => "Unavailable", _ => "No generic NPU counter", _ => null),
-            Resource("Thermals", "Thermals", Theme.Thermal, s => s.Temperature is null ? "Unavailable" : Format.Celsius(s.Temperature), s => Sensors.ThermalCaption(s.Temperature, s.TempMin, s.TempNames), s => s.Temperature / 100)
+            Resource("Thermals", "Thermals", Theme.Thermal, s => s.Temperature is null ? "Unavailable" : Format.Celsius(s.Temperature), s => s.Temperature is null ? SensorAccess.Unavailable : Sensors.ThermalCaption(s.Temperature, s.TempMin, s.TempNames), s => s.Temperature / 100)
         ];
         for (var i = 0; i < tiles.Length; i++) { Grid.SetColumn(tiles[i], i % 3); Grid.SetRow(tiles[i], i / 3); ((FrameworkElement)tiles[i]).Margin = new Thickness(0, 0, i % 3 == 2 ? 0 : 12, i < 3 ? 12 : 0); resources.Children.Add(tiles[i]); }
         stack.Children.Add(resources);
