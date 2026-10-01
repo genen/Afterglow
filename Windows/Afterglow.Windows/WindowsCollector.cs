@@ -83,7 +83,9 @@ internal sealed class WindowsCollector : IDisposable
         double? hotspot = thermal.Temperature;
         double? tempMin = thermal.TempMin;
         var rows = Processes(seconds, gpu);
-        var nics = Interfaces(seconds);
+        var nics = counters.Has("netIn")
+            ? counters.Ready ? Sensors.NetworkFrom(counters.Array("netIn"), counters.Array("netOut")) : []
+            : Interfaces(seconds);
         var top = rows.Where(row => row.Cpu is not null).MaxBy(row => row.Cpu);
         var topMemory = rows.Where(row => row.Memory is not null).MaxBy(row => row.Memory);
         var available = memoryOk ? (double?)memory.AvailablePhysical : null;

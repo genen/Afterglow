@@ -87,6 +87,26 @@ public static class Sensors
         return (readSum, writeSum, busyMax, disks.ToArray());
     }
 
+    // Task Manager reads Network Adapter bytes per second. 100 Gbps is the sanity cap.
+    public static DeviceSample[] NetworkFrom(
+        IEnumerable<(string Name, double Value)> received,
+        IEnumerable<(string Name, double Value)> sent)
+    {
+        var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        var inMap = Map(received, names);
+        var outMap = Map(sent, names);
+        var rows = new List<DeviceSample>();
+        foreach (var name in names)
+        {
+            if (name.Equals("_Total", StringComparison.OrdinalIgnoreCase) || name.Contains("Loopback", StringComparison.OrdinalIgnoreCase)) continue;
+            double? receive = inMap.TryGetValue(name, out var input) && input <= 12_500_000_000d ? input : null;
+            double? send = outMap.TryGetValue(name, out var output) && output <= 12_500_000_000d ? output : null;
+            if (receive is null && send is null) continue;
+            rows.Add(new DeviceSample(name, name, receive, send));
+        }
+        return rows.ToArray();
+    }
+
     private static Dictionary<string, double> Map(IEnumerable<(string Name, double Value)> rows, SortedSet<string> names)
     {
         var map = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);

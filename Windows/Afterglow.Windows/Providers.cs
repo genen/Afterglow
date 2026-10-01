@@ -22,6 +22,10 @@ internal sealed class PdhSource : IDisposable
         Add("page", @"\Paging File(_Total)\% Usage");
         Add("thermal", @"\Thermal Zone Information(*)\Temperature");
         Add("thermalHi", @"\Thermal Zone Information(*)\High Precision Temperature");
+        Add("netIn", @"\Network Adapter(*)\Bytes Received/sec");
+        Add("netOut", @"\Network Adapter(*)\Bytes Sent/sec");
+        if (!counters.ContainsKey("netIn")) Add("netIn", @"\Network Interface(*)\Bytes Received/sec");
+        if (!counters.ContainsKey("netOut")) Add("netOut", @"\Network Interface(*)\Bytes Sent/sec");
     }
 
     public bool Has(string key) => counters.ContainsKey(key);
