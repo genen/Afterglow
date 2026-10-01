@@ -137,7 +137,7 @@ internal sealed partial class MainWindow : Window
                 inventory = [new("Loading…", "Collecting Windows inventory", "")];
                 body.Content = DiskPage();
                 _ = RefreshInventory(); break;
-            case "Users": body.Content = TablePage("Process owners; CPU uses one logical core = 100%. Working sets may count shared memory more than once."); break;
+            case "Users": body.Content = TablePage("Process owners. CPU is a percent of all logical processors. Working sets may count shared memory more than once."); break;
             case "Flight Recorder": body.Content = RecorderPage(); break;
             case "Benchmarks": body.Content = BenchmarkPage(); break;
             default:
@@ -428,11 +428,12 @@ internal sealed partial class MainWindow : Window
         var hot = new HashSet<string>();
         foreach (var process in processes)
         {
-            if (process.Cpu is not >= 150) continue;
+            var busyCore = 150d / WindowsCollector.LogicalProcessors;
+            if (process.Cpu is not { } cpu || cpu < busyCore) continue;
             hot.Add(process.Identity);
             if (!cpuHotSince.ContainsKey(process.Identity)) cpuHotSince[process.Identity] = now;
             else if (now - cpuHotSince[process.Identity] >= TimeSpan.FromSeconds(10))
-                Consider("cpu-" + process.Identity, $"{process.Name} has used at least 150% of one core for 10 seconds.", true);
+                Consider("cpu-" + process.Identity, $"{process.Name} has used at least {busyCore:0.0}% of the CPU for 10 seconds.", true);
         }
         foreach (var key in cpuHotSince.Keys.Where(key => !hot.Contains(key)).ToArray()) cpuHotSince.Remove(key);
         PaintAlerts();

@@ -63,7 +63,7 @@ internal sealed partial class MainWindow
         terminate = Button("End process…", (_, _) => EndProcess()); terminate.IsEnabled = false; filters.Children.Add(terminate);
         filters.Children.Add(Button("End process tree…", (_, _) => EndTree()));
         DockPanel.SetDock(filters, Dock.Top); panel.Children.Add(filters);
-        var note = Text("CPU: one logical core = 100%. I/O includes file, device and network operations. Energy is a derived score, not watts. Ending a process may lose unsaved work.", 12, Theme.Muted);
+        var note = Text("CPU is a percent of all logical processors, on the same scale as Task Manager. I/O includes file, device and network operations. Energy is a derived score, not watts. Ending a process may lose unsaved work.", 12, Theme.Muted);
         note.Margin = new Thickness(0, 0, 0, 12); DockPanel.SetDock(note, Dock.Top); panel.Children.Add(note);
         inspector = Text("Select a process to inspect it.", 12, Theme.Muted);
         inspector.FontFamily = new FontFamily("Consolas");

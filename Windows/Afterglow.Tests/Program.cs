@@ -63,7 +63,7 @@ var mac = TraceFile.Decode(Encoding.UTF8.GetBytes("""
 Check("Mac epoch imported", mac.Frames[0].Sample.Time == new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero));
 Check("Mac identities never actionable", mac.Frames[0].Processes[0].Started == 0);
 Check("Mac CPU scale preserved", mac.Frames[0].Processes[0].Cpu == 150);
-Check("energy score weights CPU and memory", Sensors.Energy(100, 0, 1_000) == 85 && Sensors.Energy(0, 1_000, 1_000) == 15);
+Check("process CPU is a share of every logical processor", CounterMath.ShareOfMachine(84.2, 16) is > 5.2 and < 5.3 && CounterMath.ShareOfMachine(1600, 16) == 100 && CounterMath.ShareOfMachine(null, 16) is null);
 Check("available memory sets pressure", Sensors.Pressure(50, 100) == 0 && Sensors.Pressure(30, 100) == 1 && Sensors.Pressure(10, 100) == 4 && Sensors.PressureName(2) == "Urgent");
 Check("network port swaps byte order", Sensors.NetworkPort(0x0000BB01) == 443);
 var cores = Sensors.Cores([("0,_Total", 90), ("0,1", 20), ("1,0", 40), ("0,0", 10)], [("0,0", 4), ("0,1", 5), ("1,0", 6)]);

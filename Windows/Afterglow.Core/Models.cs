@@ -37,6 +37,10 @@ public static class CounterMath
     public static double? Rate(ulong current, ulong previous, double seconds) =>
         seconds > 0 && double.IsFinite(seconds) && current >= previous ? (current - previous) / seconds : null;
 
+    // oneCorePercent uses one logical processor = 100. The result is a share of the whole CPU.
+    public static double? ShareOfMachine(double? oneCorePercent, int logicalProcessors) =>
+        oneCorePercent is { } value && logicalProcessors > 0 && double.IsFinite(value) ? Math.Clamp(value / logicalProcessors, 0, 100) : null;
+
     // Windows kernel time includes idle time.
     public static (double? Cpu, double? Kernel) Cpu(ulong idle, ulong kernel, ulong user,
         ulong oldIdle, ulong oldKernel, ulong oldUser)

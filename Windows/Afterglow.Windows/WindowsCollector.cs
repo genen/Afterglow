@@ -11,6 +11,7 @@ namespace Afterglow.Windows;
 
 internal sealed class WindowsCollector : IDisposable
 {
+    internal static readonly int LogicalProcessors = Math.Max(1, Environment.ProcessorCount);
     private readonly PdhSource counters = new();
     private readonly CpuSensors cpuSensors = new();
     private readonly Dictionary<ulong, (string Name, double Dedicated)> adapters = [];
@@ -131,7 +132,7 @@ internal sealed class WindowsCollector : IDisposable
                         var ioOk = Native.GetProcessIoCounters(handle, out var io);
                         if (seen)
                         {
-                            pcpu = CounterMath.Rate(ticks, prior.Cpu, seconds) / 100_000;
+                            pcpu = CounterMath.ShareOfMachine(CounterMath.Rate(ticks, prior.Cpu, seconds) / 100_000, LogicalProcessors);
                             if (ioOk && prior.Read is { } read) readRate = CounterMath.Rate(io.ReadBytes, read, seconds);
                             if (ioOk && prior.Write is { } write) writeRate = CounterMath.Rate(io.WriteBytes, write, seconds);
                             owner = prior.Owner;
