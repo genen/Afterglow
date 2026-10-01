@@ -69,7 +69,7 @@ internal sealed partial class MainWindow
 
     private static string ThermalLine(Sample sample)
     {
-        var cpu = sample.Temperature is null ? null : Sensors.ThermalCaption(sample.Temperature, sample.TempMin, sample.TempNames);
+        var cpu = sample.Temperature is null ? null : $"CPU {Format.Celsius(sample.Temperature)}";
         var gpu = string.IsNullOrWhiteSpace(sample.GpuTemperature) ? null : sample.GpuTemperature;
         return cpu is null && gpu is null ? SensorAccess.Unavailable : string.Join(" · ", new[] { cpu, gpu }.Where(item => item is not null));
     }
