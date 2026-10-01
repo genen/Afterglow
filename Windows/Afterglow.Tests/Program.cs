@@ -27,6 +27,7 @@ Check("system refused", !CounterMath.CanTerminate(row with { Pid = 4 }, 100, 99,
 Check("unknown creation refused", !CounterMath.CanTerminate(row with { Started = 0 }, 0, 99, false));
 Check("replay refused", !CounterMath.CanTerminate(row, 100, 99, true));
 Check("unavailable differs from zero", Format.Bytes(null) == "Unavailable" && Format.Bytes(0) == "0 B");
+Check("memory is labeled in GB", Format.Bytes(1024d * 1024 * 1024) == "1 GB" && Format.Bytes(1024d * 1024) == "1 MB");
 Check("nonfinite display unavailable", Format.Percent(double.NaN) == "Unavailable");
 Check("CSV escapes quotes", Format.CsvField("a\"b") == "\"a\"\"b\"");
 Check("CSV formula guard", Format.CsvField("  =1+1").StartsWith("\"'"));

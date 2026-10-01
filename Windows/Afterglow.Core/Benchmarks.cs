@@ -19,7 +19,7 @@ public static class Benchmarks
         {
             var timer = Stopwatch.StartNew(); byte[] hash = [];
             for (var i = 0; i < 16; i++) hash = SHA256.HashData(data);
-            return $"Memory + SHA-256 · {1 / timer.Elapsed.TotalSeconds:0.00} GiB/s\n1 GiB hashed\nSHA-256: {Convert.ToHexString(hash)}";
+            return $"Memory + SHA-256 · {1 / timer.Elapsed.TotalSeconds:0.00} GB/s\n1 GB hashed\nSHA-256: {Convert.ToHexString(hash)}";
         }
         if (kind != "Disk") throw new ArgumentException("Unknown workload.", nameof(kind));
         var path = Path.Combine(Path.GetTempPath(), "afterglow-benchmark-" + Guid.NewGuid().ToString("N"));

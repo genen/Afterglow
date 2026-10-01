@@ -68,7 +68,7 @@ public static class Format
     public static string Bytes(double? n)
     {
         if (n is not { } v || !double.IsFinite(v) || v < 0) return "Unavailable";
-        string[] units = ["B", "KiB", "MiB", "GiB", "TiB"];
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
         var i = 0;
         while (v >= 1024 && i < units.Length - 1) { v /= 1024; i++; }
         return $"{v:0.#} {units[i]}";
