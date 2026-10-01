@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Afterglow.Core/Afterglow.Core.csproj" />
+  <Project Path="Afterglow.Windows/Afterglow.Windows.csproj" />
+  <Project Path="Afterglow.Tests/Afterglow.Tests.csproj" />
+</Solution>
