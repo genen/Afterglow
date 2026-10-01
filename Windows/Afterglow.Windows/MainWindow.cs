@@ -287,9 +287,18 @@ internal sealed partial class MainWindow : Window
         try { WindowsCollector.Terminate(row, replay is not null); actionMessage = $"Ended {row.Name}."; _ = Tick(true); } catch (Exception ex) { Message(ex.Message); }
     }
 
+    private static string AppVersion
+    {
+        get
+        {
+            var version = typeof(MainWindow).Assembly.GetName().Version;
+            return version is null ? "1.1" : version.Major + "." + version.Minor;
+        }
+    }
+
     private void ShowSettings()
     {
-        var dialog = new Window { Title = "Afterglow settings & colors", Owner = this, Width = 450, Height = 640, ResizeMode = ResizeMode.NoResize, Background = Theme.Background, Foreground = Theme.Foreground, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var dialog = new Window { Title = "Afterglow settings & colors", Owner = this, Width = 450, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize, Background = Theme.Background, Foreground = Theme.Foreground, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         var panel = new StackPanel { Margin = new Thickness(24) };
         panel.Children.Add(Text("Sample interval (seconds)", 14));
         var interval = new ComboBox { ItemsSource = new[] { .25, .5, 1, 2, 5 }, SelectedItem = settings.Interval, Margin = new Thickness(0, 8, 0, 16), Foreground = Brushes.Black }; panel.Children.Add(interval);
@@ -303,7 +312,8 @@ internal sealed partial class MainWindow : Window
         var alertsBox = new CheckBox { Content = "Memory pressure, temperature, and sustained CPU alerts", IsChecked = settings.Alerts, Margin = new Thickness(0, 5, 0, 10), Foreground = Theme.Foreground }; panel.Children.Add(alertsBox);
         panel.Children.Add(Text("Appearance", 14));
         var appearance = new ComboBox { ItemsSource = new[] { "Dark", "Light", "System" }, SelectedItem = settings.Appearance, Margin = new Thickness(0, 8, 0, 16), Foreground = Brushes.Black }; panel.Children.Add(appearance);
-        var showSelf = new CheckBox { Content = "Show Afterglow in process lists", IsChecked = settings.ShowSelf, Margin = new Thickness(0, 5, 0, 20), Foreground = Theme.Foreground }; panel.Children.Add(showSelf);
+        var showSelf = new CheckBox { Content = "Show Afterglow in process lists", IsChecked = settings.ShowSelf, Margin = new Thickness(0, 5, 0, 16), Foreground = Theme.Foreground }; panel.Children.Add(showSelf);
+        panel.Children.Add(Text("Version " + AppVersion, 13, Theme.Muted));
         panel.Children.Add(Button("Save settings", (_, _) =>
         {
             var previousLight = settings.ResolvedLight;

@@ -10,4 +10,7 @@
     <ApplicationIcon>Afterglow.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Afterglow.Core/Afterglow.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+  </ItemGroup>
 </Project>

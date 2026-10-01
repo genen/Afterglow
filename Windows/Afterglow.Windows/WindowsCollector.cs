@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Management;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
@@ -11,6 +12,7 @@ namespace Afterglow.Windows;
 internal sealed class WindowsCollector : IDisposable
 {
     private readonly PdhSource counters = new();
+    private readonly CpuSensors cpuSensors = new();
     private readonly Dictionary<ulong, (string Name, double Dedicated)> adapters = [];
     private (ulong Idle, ulong Kernel, ulong User)? cpu;
     private long stamp, nextAdapters, nextThermal;
@@ -272,7 +274,7 @@ internal sealed class WindowsCollector : IDisposable
     {
         var now = Stopwatch.GetTimestamp();
         if (now < nextThermal || Interlocked.Exchange(ref thermalRunning, 1) == 1) return;
-        nextThermal = now + Stopwatch.Frequency * 15;
+        nextThermal = now + Stopwatch.Frequency * 2;
         var thread = new Thread(ReadThermal) { IsBackground = true, Name = "Afterglow thermal" };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
@@ -285,10 +287,9 @@ internal sealed class WindowsCollector : IDisposable
             var rows = new List<(string Name, double Celsius)>();
             var havePdh = Volatile.Read(ref pdhZones).Length > 0;
             if (!havePdh) ReadAcpi(rows);
-            if (!rows.Any(row => Sensors.IsCpuZone(row.Name)) && !Volatile.Read(ref pdhZones).Any(row => Sensors.IsCpuZone(row.Name)))
-                ReadHardwareMonitor(rows);
-            if (havePdh) rows.RemoveAll(row => !Sensors.IsCpuZone(row.Name));
-            if (rows.Count == 0 && !havePdh) return;
+            rows.AddRange(cpuSensors.Read());
+            if (havePdh) rows.RemoveAll(row => !Sensors.IsCpuZone(row.Name) && !Sensors.IsPackageZone(row.Name));
+            if (rows.Count == 0) return;
             Volatile.Write(ref fallbackZones, rows.ToArray());
         }
         catch (Exception ex) when (IsOptional(ex))
@@ -298,101 +299,49 @@ internal sealed class WindowsCollector : IDisposable
 
     private static void ReadAcpi(List<(string Name, double Celsius)> rows)
     {
+        QueryWmi(@"root\wmi", "SELECT InstanceName, CurrentTemperature FROM MSAcpi_ThermalZoneTemperature", item =>
+        {
+            if (item["CurrentTemperature"] is null || Sensors.ThermalCelsius(Convert.ToDouble(item["CurrentTemperature"])) is not { } celsius) return;
+            var name = item["InstanceName"]?.ToString();
+            rows.Add((string.IsNullOrWhiteSpace(name) ? "Thermal zone" : name, celsius));
+        });
+        QueryWmi(@"root\cimv2", "SELECT Name, Temperature, HighPrecisionTemperature FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation", item =>
+        {
+            double? precise = item["HighPrecisionTemperature"] is null ? null : Convert.ToDouble(item["HighPrecisionTemperature"]);
+            double? coarse = item["Temperature"] is null ? null : Convert.ToDouble(item["Temperature"]);
+            var celsius = precise is { } hi ? Sensors.ThermalCelsius(hi) : null;
+            celsius ??= coarse is { } lo ? Sensors.ThermalCelsius(lo) : null;
+            if (celsius is not { } value) return;
+            var name = item["Name"]?.ToString();
+            rows.Add((string.IsNullOrWhiteSpace(name) ? "Thermal zone" : name, value));
+        });
+    }
+
+    private static void QueryWmi(string scope, string query, Action<ManagementObject> visit)
+    {
         try
         {
-            dynamic? results = WmiQuery(@"root\wmi", "SELECT InstanceName, CurrentTemperature FROM MSAcpi_ThermalZoneTemperature");
-            if (results is null) return;
-            foreach (var item in WmiItems(results))
+            using var searcher = new ManagementObjectSearcher(scope, query);
+            using var results = searcher.Get();
+            foreach (ManagementObject item in results)
             {
-                double raw;
-                try { raw = Convert.ToDouble(item.CurrentTemperature); }
-                catch (Exception ex) when (IsOptional(ex)) { continue; }
-                if (Sensors.ThermalCelsius(raw) is not { } celsius) continue;
-                var name = "Thermal zone";
-                try { if (item.InstanceName is string text && !string.IsNullOrWhiteSpace(text)) name = text; } catch (Exception ex) when (IsOptional(ex)) { }
-                rows.Add((name, celsius));
+                using (item)
+                    try { visit(item); }
+                    catch (Exception ex) when (IsOptional(ex)) { }
             }
         }
-        catch (Exception ex) when (IsOptional(ex)) { }
-        try
-        {
-            dynamic? results = WmiQuery(@"root\cimv2", "SELECT Name, Temperature, HighPrecisionTemperature FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation");
-            if (results is null) return;
-            foreach (var item in WmiItems(results))
-            {
-                double? precise = null, coarse = null;
-                try { precise = Convert.ToDouble(item.HighPrecisionTemperature); } catch (Exception ex) when (IsOptional(ex)) { }
-                try { coarse = Convert.ToDouble(item.Temperature); } catch (Exception ex) when (IsOptional(ex)) { }
-                var celsius = precise is { } hi ? Sensors.ThermalCelsius(hi) : null;
-                celsius ??= coarse is { } lo ? Sensors.ThermalCelsius(lo) : null;
-                if (celsius is not { } value) continue;
-                var name = "Thermal zone";
-                try { if (item.Name is string text && !string.IsNullOrWhiteSpace(text)) name = text; } catch (Exception ex) when (IsOptional(ex)) { }
-                rows.Add((name, value));
-            }
-        }
-        catch (Exception ex) when (IsOptional(ex)) { }
-    }
-
-    private static void ReadHardwareMonitor(List<(string Name, double Celsius)> rows)
-    {
-        foreach (var space in new[] { @"root\LibreHardwareMonitor", @"root\OpenHardwareMonitor" })
-        {
-            try
-            {
-                dynamic? results = WmiQuery(space, "SELECT Name, Parent, SensorType, Value FROM Sensor");
-                if (results is null) continue;
-                foreach (var item in WmiItems(results))
-                {
-                    string type, name, parent;
-                    try
-                    {
-                        type = Convert.ToString(item.SensorType) ?? "";
-                        name = Convert.ToString(item.Name) ?? "";
-                        parent = Convert.ToString(item.Parent) ?? "";
-                    }
-                    catch (Exception ex) when (IsOptional(ex)) { continue; }
-                    if (!type.Equals("Temperature", StringComparison.OrdinalIgnoreCase)) continue;
-                    if (!Sensors.IsCpuZone(name) && !Sensors.IsCpuZone(parent)) continue;
-                    double value;
-                    try { value = Convert.ToDouble(item.Value); }
-                    catch (Exception ex) when (IsOptional(ex)) { continue; }
-                    if (!double.IsFinite(value) || value is < -20 or > 125) continue;
-                    rows.Add((string.IsNullOrWhiteSpace(name) ? "CPU" : name, value));
-                }
-            }
-            catch (Exception ex) when (IsOptional(ex)) { }
-        }
-    }
-
-    private static dynamic? WmiQuery(string space, string query)
-    {
-        var type = Type.GetTypeFromProgID("WbemScripting.SWbemLocator");
-        if (type is null) return null;
-        dynamic locator = Activator.CreateInstance(type)!;
-        dynamic services = locator.ConnectServer(".", space);
-        return services.ExecQuery(query);
-    }
-
-    private static List<dynamic> WmiItems(dynamic results)
-    {
-        var list = new List<dynamic>();
-        int count;
-        try { count = Convert.ToInt32(results.Count); }
-        catch (Exception ex) when (IsOptional(ex)) { return list; }
-        for (var i = 0; i < count; i++)
-        {
-            try { list.Add(results.ItemIndex(i)); }
-            catch (Exception ex) when (IsOptional(ex)) { }
-        }
-        return list;
+        catch (Exception ex) when (IsOptional(ex) || ex is ManagementException || ex is UnauthorizedAccessException)
+        { }
     }
 
     private static bool IsOptional(Exception ex) => ex is COMException or InvalidCastException or InvalidOperationException
-        or System.Reflection.TargetInvocationException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException
-        or FormatException or OverflowException or NullReferenceException or InvalidComObjectException;
+        or System.Reflection.TargetInvocationException or FormatException or OverflowException or NullReferenceException or InvalidComObjectException;
 
-    public void Dispose() => counters.Dispose();
+    public void Dispose()
+    {
+        counters.Dispose();
+        cpuSensors.Dispose();
+    }
 
     public static void Terminate(ProcessRow row, bool replay)
     {

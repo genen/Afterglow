@@ -263,7 +263,7 @@ internal static class Inventory
             new("CPU nominal frequency", "Registry value; the live clock is shown above when PDH reports it", cpu?.GetValue("~MHz") is int mhz ? $"{mhz} MHz" : "Unavailable"),
             new("Package power", "No generic package-power counter", "Unavailable"),
             new("Battery rate", "SYSTEM_BATTERY_STATE.Rate when a battery is present", "Shown live on this page. Positive means discharging. This is not package power."),
-            new("Temperature", "PDH thermal zones, then ACPI. CPU zone preferred when a sensor is named.", "Shown live when firmware or a local hardware monitor publishes one."),
+            new("Temperature", "CPU package sensor, then ACPI thermal zones", "Shown live when a sensor can be read."),
             new("GPU utilization", "PDH GPU Engine", "Shown live when the driver publishes engine counters."),
             new("NPU utilization", "No generic NPU counter", "Unavailable")];
     }

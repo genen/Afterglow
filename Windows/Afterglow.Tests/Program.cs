@@ -98,6 +98,8 @@ var precise = Sensors.Thermals([("TZ00", 3000)], [("TZ00", 320.15)]);
 Check("high precision overrides coarse", Close(precise.Temperature, 47) && precise.Temps.Length == 1);
 var monitor = Sensors.FromCelsius([("CPU Package", 61.2), ("System", 34)]);
 Check("monitor CPU package preferred", Close(monitor.Temperature, 61.2) && monitor.Temps.Length == 2);
+Check("package temperature beats a hotter core", Close(Sensors.FromCelsius([("CPU Package", 60), ("Core #1", 72)]).Temperature, 60));
+Check("Tctl is the CPU temperature", Close(Sensors.FromCelsius([("Core (Tctl/Tdie)", 71), ("Core #1", 80)]).Temperature, 71));
 Check("temperature caption", Sensors.ThermalCaption(null, null, null) == "Temperature sensors unavailable" && Sensors.ThermalCaption(61.2, 61.2, ["CPU Package"]).StartsWith("CPU"));
 var legacy = TraceFile.Decode(Encoding.UTF8.GetBytes("""
 {"version":2,"app":"Afterglow","platform":"windows","frames":[{"sample":{"time":"2026-09-29T00:00:00Z","cpu":1,"powerSource":"AC power","topCpu":"x","interfaces":[]},"processes":[{"pid":7,"started":8,"name":"n","user":"u","session":1,"path":"","status":"Running"}]}]}

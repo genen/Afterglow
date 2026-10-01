@@ -196,6 +196,13 @@ public static class Sensors
         return raw <= 1250 && deci is >= -20 and <= 125 ? deci : null;
     }
 
+    public static bool IsPackageZone(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return false;
+        var text = name.ToLowerInvariant();
+        return text.Contains("package") || text.Contains("tctl") || text.Contains("tdie");
+    }
+
     public static bool IsCpuZone(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return false;
@@ -253,7 +260,8 @@ public static class Sensors
     {
         if (map.Count == 0) return new(null, null, [], []);
         var ordered = map.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase).ToArray();
-        var chosen = ordered.Where(pair => IsCpuZone(pair.Key)).ToArray();
+        var package = ordered.Where(pair => IsPackageZone(pair.Key)).ToArray();
+        var chosen = package.Length > 0 ? package : ordered.Where(pair => IsCpuZone(pair.Key)).ToArray();
         if (chosen.Length == 0) chosen = ordered;
         return new(chosen.Max(pair => pair.Value), chosen.Min(pair => pair.Value),
             ordered.Select(pair => pair.Value).ToArray(), ordered.Select(pair => pair.Key).ToArray());
