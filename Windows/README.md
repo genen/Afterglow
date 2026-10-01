@@ -37,6 +37,8 @@ Install the .NET 10 SDK, then from the project root:
 
 The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, and appears in Settings under Apps. It asks for administrator because Program Files and the sensor driver do. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
 
+Publishing a GitHub release builds `Afterglow-Setup-win-x64.msi` and attaches it to that release. The source zip and tar.gz are added by GitHub and do not include the installer. To attach an MSI to a release that already exists, run the **Release installer** workflow and enter its tag, such as `v1.4.0`.
+
 Development: `dotnet run --project Windows/Afterglow.Windows`. Open `Windows/Afterglow.slnx` in a .NET 10-compatible IDE. `-FrameworkDependent` creates a smaller build requiring the matching .NET 10 Desktop Runtime. Use a clean output folder when changing publishing modes.
 
 The smoke test writes `afterglow-smoke-test.json` in the app working directory, collects real telemetry, enumerates inventories, and terminates only a disposable child it creates. Exit code 0 means pass. CI builds both architectures and runs native checks on the x64 Windows runner. CI has been added but has not been run from this local workspace.
