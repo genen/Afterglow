@@ -56,7 +56,7 @@ internal sealed class VfdMeter : FrameworkElement
         {
             var cpuOn = fraction is not null && i / (double)Cells < Level;
             var gpuOn = overlayFraction is not null && OverlayTone is not null && i / (double)Cells < OverlayLevel;
-            var tone = gpuOn ? OverlayTone : Tone;
+            var tone = (gpuOn ? OverlayTone : Tone) ?? Tone;
             var on = cpuOn || gpuOn;
             var rect = new Rect(Vertical ? 0 : i * (width + gap), Vertical ? (Cells - 1 - i) * (height + gap) : 0, width, height);
             if (on && Theme.Bloom)
