@@ -176,7 +176,7 @@ internal sealed partial class MainWindow
             if (!seen.Add(row.Pid) || depth > 64) return;
             lines.Add(LineFrom(row, depth));
             if (!byParent.TryGetValue(row.Pid, out var children)) return;
-            foreach (var child in children.OrderBy(child => LineFrom(child, 0), Comparer<ProcessLine>.Create(CompareLines))) Walk(child, depth + 1);
+            foreach (var child in children.Where(child => Sensors.IsChildOf(child, row, strict: false)).OrderBy(child => LineFrom(child, 0), Comparer<ProcessLine>.Create(CompareLines))) Walk(child, depth + 1);
         }
         foreach (var root in rows.Where(row => row.Parent == row.Pid || !ids.Contains(row.Parent)).OrderBy(row => LineFrom(row, 0), Comparer<ProcessLine>.Create(CompareLines)))
             Walk(root, 0);
