@@ -304,6 +304,13 @@ internal sealed partial class MainWindow : Window
         panel.Children.Add(Text("Appearance", 14));
         var appearance = new ComboBox { ItemsSource = new[] { "Dark", "Light", "System" }, SelectedItem = settings.Appearance, Margin = new Thickness(0, 8, 0, 16), Foreground = Brushes.Black }; panel.Children.Add(appearance);
         var showSelf = new CheckBox { Content = "Show Afterglow in process lists", IsChecked = settings.ShowSelf, Margin = new Thickness(0, 5, 0, 16), Foreground = Theme.Foreground }; panel.Children.Add(showSelf);
+        if (!SensorAccess.IsAdministrator())
+        {
+            panel.Children.Add(Text("CPU temperature and package power need administrator access" + (SensorAccess.DriverInstalled ? "." : " and the PawnIO driver from pawnio.eu."), 12, Theme.Muted));
+            var elevate = Button("Restart as administrator", (_, _) => { dialog.Close(); RestartElevated(); });
+            elevate.Margin = new Thickness(0, 4, 0, 16); elevate.HorizontalAlignment = HorizontalAlignment.Left;
+            panel.Children.Add(elevate);
+        }
         panel.Children.Add(Text("Version " + Inventory.ProductVersion, 13, Theme.Muted));
         panel.Children.Add(Button("Save settings", (_, _) =>
         {
@@ -322,6 +329,18 @@ internal sealed partial class MainWindow : Window
             else RefreshBrand();
             ShowPage(destination); dialog.Close();
         })); dialog.Content = panel; dialog.ShowDialog();
+    }
+    // Elevation is opt-in. The manifest runs Afterglow as the signed-in user.
+    private void RestartElevated()
+    {
+        var path = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(path)) { Message("Afterglow could not find its own executable."); return; }
+        if (recorded.Frames.Count > savedFrameCount && MessageBox.Show(this, "Restart Afterglow as administrator? The unsaved recording will be lost.", "Restart as administrator", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true, Verb = "runas" })?.Dispose(); }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223) { return; }
+        catch (Win32Exception ex) { Message("Could not restart as administrator: " + ex.Message); return; }
+        savedFrameCount = recorded.Frames.Count;
+        Close();
     }
     private UIElement BenchmarkPage()
     {
