@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Net.Http;
 using System.Security.Principal;
 using Microsoft.Win32;
 using LibreHardwareMonitor.Hardware;
@@ -9,7 +7,7 @@ namespace Afterglow.Windows;
 
 internal static class SensorAccess
 {
-    public static bool IsAdministrator()
+    private static readonly Lazy<bool> Administrator = new(() =>
     {
         try
         {
@@ -17,18 +15,35 @@ internal static class SensorAccess
             return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
         }
         catch (Exception) { return false; }
-    }
+    });
 
-    public static string Unavailable => IsAdministrator()
-        ? "Temperature sensors unavailable"
-        : "CPU temperature needs administrator approval. Start Afterglow again and choose Yes.";
+    // Afterglow never downloads or installs the driver. The user installs PawnIO from its publisher.
+    private static readonly Lazy<bool> Driver = new(PawnIoInstalled);
+
+    public static bool IsAdministrator() => Administrator.Value;
+    public static bool DriverInstalled => Driver.Value;
+
+    public static string Unavailable =>
+        !DriverInstalled ? "CPU temperature needs the PawnIO driver. Install it from pawnio.eu, then restart Afterglow as administrator."
+        : !IsAdministrator() ? "CPU temperature needs administrator access. Use Settings › Restart as administrator."
+        : "Temperature sensors unavailable";
+
+    private static bool PawnIoInstalled()
+    {
+        foreach (var folder in new[] { Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86 })
+            if (Directory.Exists(Path.Combine(Environment.GetFolderPath(folder), "PawnIO"))) return true;
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO");
+            return key is not null;
+        }
+        catch (Exception) { return false; }
+    }
 }
 
 internal sealed class CpuSensors : IDisposable
 {
-    private const string PawnIoSetup = "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/raw/refs/heads/master/LibreHardwareMonitor.Windows.Forms/Resources/PawnIO_setup.exe";
     private Computer? computer;
-    private int pawnAttempt;
     private PackagePower power = new(null, null);
     private GpuReading gpu = new(null, null);
     private bool sawGpu;
@@ -58,7 +73,6 @@ internal sealed class CpuSensors : IDisposable
 
     private Computer Open()
     {
-        EnsurePawnIo();
         // Same walk as OpenHardwareMonitor: open the CPU, Update(), then read Temperature sensors.
         var opened = new Computer
         {
@@ -73,38 +87,6 @@ internal sealed class CpuSensors : IDisposable
         };
         opened.Open();
         return opened;
-    }
-
-    private void EnsurePawnIo()
-    {
-        if (PawnIoInstalled() || !SensorAccess.IsAdministrator() || Interlocked.Exchange(ref pawnAttempt, 1) == 1) return;
-        try
-        {
-            var dest = Path.Combine(Path.GetTempPath(), "Afterglow-PawnIO-setup.exe");
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
-            var bytes = http.GetByteArrayAsync(PawnIoSetup).GetAwaiter().GetResult();
-            if (bytes.Length < 10_000) return;
-            File.WriteAllBytes(dest, bytes);
-            using var process = Process.Start(new ProcessStartInfo(dest, "-install -silent")
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
-            process?.WaitForExit(120_000);
-        }
-        catch (Exception ex) when (ex is not OutOfMemoryException) { }
-    }
-
-    private static bool PawnIoInstalled()
-    {
-        foreach (var folder in new[] { Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86 })
-            if (Directory.Exists(Path.Combine(Environment.GetFolderPath(folder), "PawnIO"))) return true;
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO");
-            return key is not null;
-        }
-        catch (Exception) { return false; }
     }
 
     private void Close()
