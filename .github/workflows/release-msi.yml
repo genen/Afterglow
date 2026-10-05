@@ -1,21 +1,41 @@
-name: Release installer
+name: Build and release installer
 
+# Pushes to main and pull requests build and test only.
+# A release is published only when a v<major>.<minor>.<patch> tag is pushed,
+# or when the workflow is run by hand with a tag.
 on:
   push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
     branches: [main]
   workflow_dispatch:
     inputs:
       tag:
-        description: Optional tag to build. Leave blank to build the current main commit.
+        description: Tag to build and publish, for example v1.4.0. Leave blank to build and test the current commit without publishing.
         required: false
         type: string
+      replace:
+        description: Replace the MSI if the release already has one.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
-  contents: write
+  contents: read
+
+# One run at a time per tag or branch. A release run is never cancelled part way.
+concurrency:
+  group: release-msi-${{ inputs.tag || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  msi:
+  build:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.version.outputs.publish }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,35 +47,94 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Build the stable app
-        shell: pwsh
-        run: ./Windows/scripts/build.ps1 -Stable
-
-      - name: Build the MSI
-        shell: pwsh
-        run: ./Windows/scripts/installer.ps1
-
-      - name: Publish the MSI on the release
+      - name: Read the version
+        id: version
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
           $ErrorActionPreference = 'Stop'
           $project = Get-Content Windows/Afterglow.Windows/Afterglow.Windows.csproj -Raw
           if ($project -notmatch '<Version>(\d+\.\d+\.\d+)</Version>') { throw 'Version element was not found.' }
           $version = $Matches[1]
-          $channel = if ($project -match '<InformationalVersion>[^<]*\b(stable|beta)\b') { $Matches[1] } else { 'stable' }
-          $tag = "v$version"
-          $title = "$version $channel"
-          $asset = "Afterglow-Setup-$version-win-x64.msi"
-          Copy-Item Windows/artifacts/Afterglow-Setup-win-x64.msi $asset
-          $ErrorActionPreference = 'Continue'
-          gh release view $tag --json tagName | Out-Null
-          $missing = $LASTEXITCODE -ne 0
-          $ErrorActionPreference = 'Stop'
-          if ($missing) {
-            gh release create $tag $asset --title $title --notes "Afterglow $title." --latest
-          } else {
-            gh release upload $tag --clobber $asset
+          $tag = ''
+          if ($env:REF_TYPE -eq 'tag') { $tag = $env:REF_NAME }
+          elseif ($env:INPUT_TAG) { $tag = $env:INPUT_TAG.Trim() }
+          $publish = $tag -ne ''
+          if ($publish -and $tag -ne "v$version") {
+            throw "Tag $tag does not match the project version $version. Tag the commit as v$version, or change <Version> first."
           }
-          if ($LASTEXITCODE -ne 0) { throw "Could not publish $asset to $tag." }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "publish=$($publish.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          Write-Output "Version $version. Publish: $publish."
+
+      - name: Build the stable app
+        shell: pwsh
+        run: ./Windows/scripts/build.ps1 -Stable
+
+      - name: Run core and native tests
+        shell: pwsh
+        run: ./Windows/scripts/test.ps1
+
+      - name: Keep the smoke test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-report
+          path: Windows/artifacts/win-x64/afterglow-smoke-test.json
+          if-no-files-found: ignore
+
+      - name: Build the MSI
+        shell: pwsh
+        run: ./Windows/scripts/installer.ps1
+
+      - name: Name the MSI
+        shell: pwsh
+        run: Copy-Item Windows/artifacts/Afterglow-Setup-win-x64.msi "Afterglow-Setup-${{ steps.version.outputs.version }}-win-x64.msi"
+
+      - name: Keep the MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: msi
+          path: Afterglow-Setup-${{ steps.version.outputs.version }}-win-x64.msi
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Get the MSI
+        uses: actions/download-artifact@v4
+        with:
+          name: msi
+
+      - name: Publish the MSI on the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+          REPLACE: ${{ inputs.replace || false }}
+        run: |
+          set -euo pipefail
+          asset="Afterglow-Setup-${VERSION}-win-x64.msi"
+          title="${VERSION} stable"
+          if ! gh release view "$TAG" --json tagName > /dev/null 2>&1; then
+            gh release create "$TAG" "$asset" --verify-tag --title "$title" --notes "Afterglow $title." --latest
+            exit 0
+          fi
+          if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
+            if [ "$REPLACE" != "true" ]; then
+              echo "::error::$TAG already has $asset. Run the workflow by hand with Replace checked to overwrite it."
+              exit 1
+            fi
+            gh release upload "$TAG" "$asset" --clobber
+          else
+            gh release upload "$TAG" "$asset"
+          fi
