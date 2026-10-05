@@ -194,11 +194,20 @@ public static class Sensors
             if (depth > 64 || !seen.Add(row.Pid)) return;
             if (children.TryGetValue(row.Pid, out var kids))
                 foreach (var child in kids)
-                    if (child.Pid != row.Pid) Walk(child, depth + 1);
+                    if (IsChildOf(child, row, strict: true)) Walk(child, depth + 1);
             ordered.Add(row);
         }
         Walk(root, 0);
         return ordered.ToArray();
+    }
+
+    // Windows reuses PIDs, so a parent PID alone does not prove ancestry: a child cannot start before its parent.
+    // strict requires both start times (termination). Display code passes false so recordings without start times keep their tree.
+    public static bool IsChildOf(ProcessRow child, ProcessRow parent, bool strict)
+    {
+        if (child.Parent != parent.Pid || child.Pid == parent.Pid) return false;
+        if (child.Started > 0 && parent.Started > 0) return child.Started >= parent.Started;
+        return !strict;
     }
 
     public readonly record struct ThermalReading(double? Temperature, double? TempMin, double[] Temps, string[] Names);
