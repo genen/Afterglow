@@ -88,6 +88,12 @@ Check("GPU engine sum clamps at 100", clamped.Utilization == 100 && clamped.Thre
 var treeRoot = row with { Pid = 1, Parent = 0 };
 var tree = Sensors.TerminationOrder(treeRoot, [treeRoot, row with { Pid = 2, Parent = 1 }, row with { Pid = 3, Parent = 2 }, row with { Pid = 9, Parent = 0 }]);
 Check("termination walks leaves first", tree.Select(p => p.Pid).SequenceEqual([3, 2, 1]));
+var reusedRoot = row with { Pid = 1, Parent = 0, Started = 500 };
+var reused = Sensors.TerminationOrder(reusedRoot, [reusedRoot, row with { Pid = 2, Parent = 1, Started = 400 }, row with { Pid = 3, Parent = 1, Started = 600 }]);
+Check("termination skips an older process whose parent PID was reused", reused.Select(p => p.Pid).SequenceEqual([3, 1]));
+var unknownChild = row with { Pid = 2, Parent = 1, Started = 0 };
+var unknownParent = row with { Pid = 1, Parent = 0, Started = 0 };
+Check("unknown start times keep the display tree but not termination", Sensors.IsChildOf(unknownChild, unknownParent, false) && !Sensors.IsChildOf(unknownChild, unknownParent, true));
 Check("deci-kelvin temperature", Close(Sensors.ThermalCelsius(3085), 35.35));
 Check("kelvin temperature", Close(Sensors.ThermalCelsius(308.5), 35.35));
 Check("celsius temperature", Sensors.ThermalCelsius(35.35) == 35.35);
