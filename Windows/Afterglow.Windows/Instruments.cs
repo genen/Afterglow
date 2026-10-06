@@ -99,6 +99,8 @@ internal sealed class Symbol : FrameworkElement
             "Pause" => "M 5,3 L 5,13 M 11,3 L 11,13",
             "Play" => "M 4,2 L 13,8 4,14 Z",
             "Waveform" => "M 0,9 L 3,9 4.5,3 6,14 8,1 10,15 12,9 16,9",
+            // Brand mark: a monitor and tower case. The same path is drawn in Afterglow.ico.
+            "Computer" => "M 1,3 L 10,3 L 10,10 L 1,10 Z M 5.5,10 L 5.5,12.6 M 3.4,13 L 7.6,13 M 11.5,3 L 15,3 L 15,13 L 11.5,13 Z M 12.5,5 L 14,5 M 12.5,6.8 L 14,6.8",
             _ => "M 2,3 L 14,3 14,12 2,12 Z M 6,15 L 10,15 M 8,12 L 8,15"
         }); geometry.Freeze();
     }
