@@ -38,12 +38,12 @@ jobs:
       publish: ${{ steps.version.outputs.publish }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.sha }}
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
@@ -81,7 +81,7 @@ jobs:
 
       - name: Keep the smoke test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: smoke-test-report
           path: Windows/artifacts/win-x64/afterglow-smoke-test.json
@@ -96,7 +96,7 @@ jobs:
         run: Copy-Item Windows/artifacts/Afterglow-Setup-win-x64.msi "Afterglow-Setup-${{ steps.version.outputs.version }}-win-x64.msi"
 
       - name: Keep the MSI
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: msi
           path: Afterglow-Setup-${{ steps.version.outputs.version }}-win-x64.msi
@@ -110,7 +110,7 @@ jobs:
       contents: write
     steps:
       - name: Get the MSI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: msi
 
