@@ -15,13 +15,27 @@ $upgrade = if ($Runtime -eq 'win-arm64') { 'C4A91F70-8E22-4B6D-A153-9D7C2E5B1F08
 $platform = if ($Runtime -eq 'win-arm64') { 'arm64' } else { 'x64' }
 $publishDir = (Resolve-Path $publish).Path.TrimEnd('\') + '\'
 $eula = (Resolve-Path (Join-Path $root 'installer\Eula.rtf')).Path -replace '\\', '/'
+# PawnIO is the signed sensor driver used by LibreHardwareMonitor. Pin the official release by hash and check the signer.
+$pawnIoUrl = 'https://github.com/namazso/PawnIO.Setup/releases/download/2.2.0/PawnIO_setup.exe'
+$pawnIoSha256 = '1F519A22E47187F70A1379A48CA604981C4FCF694F4E65B734AAA74A9FBA3032'
+$pawnIo = Join-Path $root 'artifacts\PawnIO_setup.exe'
+if (-not (Test-Path $pawnIo) -or (Get-FileHash $pawnIo -Algorithm SHA256).Hash -ne $pawnIoSha256) {
+    New-Item -ItemType Directory -Force (Split-Path $pawnIo) | Out-Null
+    Invoke-WebRequest -Uri $pawnIoUrl -OutFile $pawnIo -UseBasicParsing
+}
+$pawnIoHash = (Get-FileHash $pawnIo -Algorithm SHA256).Hash
+if ($pawnIoHash -ne $pawnIoSha256) { Remove-Item $pawnIo -Force; throw "PawnIO_setup.exe hash $pawnIoHash does not match the pinned $pawnIoSha256." }
+$pawnIoSignature = Get-AuthenticodeSignature $pawnIo
+if ($pawnIoSignature.Status -ne 'Valid' -or $pawnIoSignature.SignerCertificate.Subject -notmatch '(^|, )O=namazso(,|$)') {
+    throw "PawnIO_setup.exe is not validly signed by namazso (status $($pawnIoSignature.Status))."
+}
 $wix = Join-Path $root 'installer/Afterglow.Installer.wixproj'
 $out = Join-Path $root 'artifacts'
 foreach ($stale in @((Join-Path $root 'installer\obj'), (Join-Path $root 'installer\bin'))) {
     if (Test-Path $stale) { Remove-Item $stale -Recurse -Force }
 }
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
-dotnet build $wix -c Release -t:Rebuild -p:InstallerPlatform=$platform -p:ProductVersion=$version -p:PublishDir=$publishDir -p:UpgradeCode=$upgrade -p:EulaPath=$eula -o $out
+dotnet build $wix -c Release -t:Rebuild -p:InstallerPlatform=$platform -p:ProductVersion=$version -p:PublishDir=$publishDir -p:UpgradeCode=$upgrade -p:EulaPath=$eula -p:PawnIoSetup=$pawnIo -o $out
 if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
 $built = Join-Path $out 'Afterglow.msi'
 $named = Join-Path $out "Afterglow-Setup-$Runtime.msi"
