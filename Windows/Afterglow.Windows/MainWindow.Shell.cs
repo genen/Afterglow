@@ -43,7 +43,7 @@ internal sealed partial class MainWindow
         var sidebar = new DockPanel { Background = Theme.Sidebar };
         var bottom = new StackPanel();
         var brand = new StackPanel { Margin = new Thickness(16, 12, 16, 18) };
-        brandMark = new Symbol("Waveform", Theme.Network) { Width = 72, Height = 26, HorizontalAlignment = HorizontalAlignment.Center };
+        brandMark = new Symbol("Computer", Theme.Network) { Width = 34, Height = 34, HorizontalAlignment = HorizontalAlignment.Center };
         brandLabel = Text("A F T E R G L O W", 11, Theme.Network); brandLabel.FontWeight = FontWeights.Bold; brandLabel.HorizontalAlignment = HorizontalAlignment.Center;
         brand.Children.Add(brandMark); brand.Children.Add(brandLabel); bottom.Children.Add(brand);
         var settingsRow = new Grid { Height = 40 }; settingsRow.ColumnDefinitions.Add(new()); settingsRow.ColumnDefinitions.Add(new());
