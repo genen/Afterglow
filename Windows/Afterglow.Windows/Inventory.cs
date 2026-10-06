@@ -21,7 +21,7 @@ internal static class Inventory
                 return plus > 0 ? info[..plus] : info;
             }
             var version = typeof(Inventory).Assembly.GetName().Version;
-            return version is null ? "1.3 stable" : version.Major + "." + version.Minor + " beta";
+            return version is null ? "Unavailable" : $"{version.Major}.{version.Minor}.{version.Build}";
         }
     }
 
@@ -42,7 +42,7 @@ internal static class Inventory
         using var cpu = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0");
         using var bios = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\BIOS");
         var facts = MachineFacts.Current;
-        return [new("Afterglow", "Stable release", ProductVersion),
+        return [new("Afterglow", "Version and release channel", ProductVersion),
             new("Computer", "Host name", Environment.MachineName), new("Operating system", "Windows", RuntimeInformation.OSDescription),
             new("Processor", "Registry hardware description", cpu?.GetValue("ProcessorNameString")?.ToString()?.Trim() ?? "Unavailable"),
             new("Manufacturer", "System BIOS", bios?.GetValue("SystemManufacturer")?.ToString() ?? "Unavailable"),
