@@ -6,7 +6,7 @@
     <DebugSymbols>false</DebugSymbols>
     <!-- All-users Start menu and desktop shortcuts use per-user folder names. ICE38, ICE43, and ICE57 disagree about HKLM versus HKCU for that case. -->
     <SuppressIces>ICE38;ICE43;ICE57</SuppressIces>
-    <DefineConstants>Version=$(ProductVersion);PublishDir=$(PublishDir);UpgradeCode=$(UpgradeCode);EulaPath=$(EulaPath)</DefineConstants>
+    <DefineConstants>Version=$(ProductVersion);PublishDir=$(PublishDir);UpgradeCode=$(UpgradeCode);EulaPath=$(EulaPath);PawnIoSetup=$(PawnIoSetup)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
