@@ -11,6 +11,8 @@ if (-not (Test-Path (Join-Path $publish 'Afterglow.exe'))) {
 $projectText = [System.IO.File]::ReadAllText($project)
 if ($projectText -notmatch '<Version>(\d+)\.(\d+)\.(\d+)</Version>') { throw 'Version element was not found in Afterglow.Windows.csproj.' }
 $version = "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+# The installer file name always carries the product version, for example Afterglow-Setup-1.5.0-win-x64.msi.
+$fileVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
 $upgrade = if ($Runtime -eq 'win-arm64') { 'C4A91F70-8E22-4B6D-A153-9D7C2E5B1F08' } else { '7B1E0A2C-5D44-4E8A-9C31-2F6A8B0D4E15' }
 $platform = if ($Runtime -eq 'win-arm64') { 'arm64' } else { 'x64' }
 $publishDir = (Resolve-Path $publish).Path.TrimEnd('\') + '\'
@@ -38,7 +40,7 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 dotnet build $wix -c Release -t:Rebuild -p:InstallerPlatform=$platform -p:ProductVersion=$version -p:PublishDir=$publishDir -p:UpgradeCode=$upgrade -p:EulaPath=$eula -p:PawnIoSetup=$pawnIo -o $out
 if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
 $built = Join-Path $out 'Afterglow.msi'
-$named = Join-Path $out "Afterglow-Setup-$Runtime.msi"
+$named = Join-Path $out "Afterglow-Setup-$fileVersion-$Runtime.msi"
 if (-not (Test-Path $built)) { throw "WiX did not write $built." }
 Move-Item $built $named -Force
 Get-ChildItem $out -File | Where-Object { $_.Extension -in '.cab', '.pdb', '.wixpdb' } | Remove-Item -Force
