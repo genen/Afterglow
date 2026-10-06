@@ -35,9 +35,9 @@ Install the .NET 10 SDK, then from the project root:
 ./Windows/scripts/test.ps1 -AppPath ./Windows/artifacts/win-arm64/Afterglow.exe
 ```
 
-The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, and appears in Settings under Apps. It asks for administrator because it installs into Program Files. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
+The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, and appears in Settings under Apps. It asks for administrator because it installs into Program Files and installs the PawnIO sensor driver. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
 
-Afterglow runs as the signed-in user. CPU temperature and package power come from LibreHardwareMonitor, which needs the PawnIO driver and administrator access. Afterglow never downloads or installs that driver: install PawnIO from pawnio.eu yourself, then use **Settings › Restart as administrator**. Until then those readings show **Unavailable**.
+Afterglow runs as the signed-in user. CPU temperature and package power come from LibreHardwareMonitor, which needs the PawnIO driver and administrator access. The MSI installs PawnIO 2.2.0 (signed by namazso, pinned by SHA-256 in `installer.ps1`) in the same setup, and leaves it installed on uninstall because other monitoring tools share it. The app itself never downloads anything. With the portable ZIP, install PawnIO from pawnio.eu. Either way, CPU temperature and package power appear after **Settings › Restart as administrator**; until then they show **Unavailable**.
 
 Pushes to `main` and pull requests build, test, and keep `Afterglow-Setup-<version>-win-x64.msi` as a workflow artifact. To publish, push a tag that matches `<Version>`, such as `v1.4.0`. The workflow then puts that one file on the release for the tag, creating the release if needed. It does not overwrite an MSI already on a release unless you run it by hand with Replace checked. The source zip and tar.gz are added by GitHub and are not the installer.
 
