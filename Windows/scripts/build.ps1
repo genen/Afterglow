@@ -1,7 +1,9 @@
 param(
     [ValidateSet('win-x64', 'win-arm64')][string]$Runtime = 'win-x64',
     [switch]$FrameworkDependent,
-    [switch]$Stable
+    [switch]$Stable,
+    # Build the version already in the project file without advancing it. Used by CI for beta releases.
+    [switch]$KeepVersion
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -14,7 +16,7 @@ $projectText = [System.IO.File]::ReadAllText($project)
 if ($projectText -notmatch '<Version>(\d+)\.(\d+)\.\d+</Version>') { throw 'Version element was not found in Afterglow.Windows.csproj.' }
 $major = [int]$Matches[1]
 $minor = [int]$Matches[2]
-if (-not $Stable) { $minor += 1 }
+if (-not $Stable -and -not $KeepVersion) { $minor += 1 }
 $channel = if ($Stable) { 'stable' } else { 'beta' }
 $projectText = [regex]::Replace($projectText, '<Version>\d+\.\d+\.\d+</Version>', "<Version>$major.$minor.0</Version>", 1)
 $projectText = [regex]::Replace($projectText, '<InformationalVersion>[^<]*</InformationalVersion>', "<InformationalVersion>$major.$minor $channel</InformationalVersion>", 1)
