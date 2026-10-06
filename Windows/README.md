@@ -35,13 +35,15 @@ Install the .NET 10 SDK, then from the project root:
 ./Windows/scripts/test.ps1 -AppPath ./Windows/artifacts/win-arm64/Afterglow.exe
 ```
 
-The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, and appears in Settings under Apps. It asks for administrator because Program Files and the sensor driver do. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
+The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, and appears in Settings under Apps. It asks for administrator because it installs into Program Files. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
 
-Every push to `main` builds `Afterglow-Setup-<version>-win-x64.msi` and puts that one file on the GitHub release for the current version, creating the release if needed. You do not build or upload it. The source zip and tar.gz are added by GitHub and are not the installer.
+Afterglow runs as the signed-in user. CPU temperature and package power come from LibreHardwareMonitor, which needs the PawnIO driver and administrator access. Afterglow never downloads or installs that driver: install PawnIO from pawnio.eu yourself, then use **Settings › Restart as administrator**. Until then those readings show **Unavailable**.
+
+Pushes to `main` and pull requests build, test, and keep `Afterglow-Setup-<version>-win-x64.msi` as a workflow artifact. To publish, push a tag that matches `<Version>`, such as `v1.4.0`. The workflow then puts that one file on the release for the tag, creating the release if needed. It does not overwrite an MSI already on a release unless you run it by hand with Replace checked. The source zip and tar.gz are added by GitHub and are not the installer.
 
 Development: `dotnet run --project Windows/Afterglow.Windows`. Open `Windows/Afterglow.slnx` in a .NET 10-compatible IDE. `-FrameworkDependent` creates a smaller build requiring the matching .NET 10 Desktop Runtime. Use a clean output folder when changing publishing modes.
 
-The smoke test writes `afterglow-smoke-test.json` in the app working directory, collects real telemetry, enumerates inventories, and terminates only a disposable child it creates. Exit code 0 means pass. CI builds both architectures and runs native checks on the x64 Windows runner. CI has been added but has not been run from this local workspace.
+The smoke test writes `afterglow-smoke-test.json` in the app working directory, collects real telemetry, enumerates inventories, and terminates only a disposable child it creates. Exit code 0 means pass. CI builds the x64 app and MSI and runs the core and native checks on the x64 Windows runner. ARM64 builds are made locally.
 
 Core checks can also run on macOS/Linux:
 
