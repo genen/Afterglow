@@ -1,8 +1,9 @@
 name: Build and release installer
 
 # Pushes to main and pull requests build and test only.
-# A release is published only when a v<major>.<minor>.<patch> tag is pushed,
-# or when the workflow is run by hand with a tag.
+# A release is published when a v<major>.<minor>.<patch> tag is pushed, or when the workflow is run
+# by hand with a tag. A hand run builds the chosen branch and creates the tag on that commit if needed.
+# The release is labelled stable or beta from <InformationalVersion>. Beta releases are pre-releases.
 on:
   push:
     branches: [main]
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to build and publish, for example v1.4.0. Leave blank to build and test the current commit without publishing.
+        description: Tag to publish, for example v1.5.0. It must match <Version>. Leave blank to build and test without publishing.
         required: false
         type: string
       replace:
@@ -36,11 +37,10 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
       publish: ${{ steps.version.outputs.publish }}
+      channel: ${{ steps.version.outputs.channel }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.tag || github.sha }}
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
@@ -59,6 +59,7 @@ jobs:
           $project = Get-Content Windows/Afterglow.Windows/Afterglow.Windows.csproj -Raw
           if ($project -notmatch '<Version>(\d+\.\d+\.\d+)</Version>') { throw 'Version element was not found.' }
           $version = $Matches[1]
+          $channel = if ($project -match '<InformationalVersion>[^<]*\bbeta\b') { 'beta' } else { 'stable' }
           $tag = ''
           if ($env:REF_TYPE -eq 'tag') { $tag = $env:REF_NAME }
           elseif ($env:INPUT_TAG) { $tag = $env:INPUT_TAG.Trim() }
@@ -69,11 +70,15 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "publish=$($publish.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-          Write-Output "Version $version. Publish: $publish."
+          "channel=$channel" >> $env:GITHUB_OUTPUT
+          Write-Output "Version $version $channel. Publish: $publish."
 
-      - name: Build the stable app
+      - name: Build the app
         shell: pwsh
-        run: ./Windows/scripts/build.ps1 -Stable
+        env:
+          CHANNEL: ${{ steps.version.outputs.channel }}
+        run: |
+          if ($env:CHANNEL -eq 'beta') { ./Windows/scripts/build.ps1 -KeepVersion } else { ./Windows/scripts/build.ps1 -Stable }
 
       - name: Run core and native tests
         shell: pwsh
@@ -120,13 +125,19 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.build.outputs.tag }}
           VERSION: ${{ needs.build.outputs.version }}
+          CHANNEL: ${{ needs.build.outputs.channel }}
           REPLACE: ${{ inputs.replace || false }}
         run: |
           set -euo pipefail
           asset="Afterglow-Setup-${VERSION}-win-x64.msi"
-          title="${VERSION} stable"
+          title="${VERSION} ${CHANNEL}"
+          if [ "$CHANNEL" = "beta" ]; then kind="--prerelease"; else kind="--latest"; fi
+          if commit=$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha 2>/dev/null) && [ "$commit" != "$GITHUB_SHA" ]; then
+            echo "::error::Tag $TAG points at $commit, but this run built $GITHUB_SHA."
+            exit 1
+          fi
           if ! gh release view "$TAG" --json tagName > /dev/null 2>&1; then
-            gh release create "$TAG" "$asset" --verify-tag --title "$title" --notes "Afterglow $title." --latest
+            gh release create "$TAG" "$asset" --target "$GITHUB_SHA" --title "$title" --notes "Afterglow $title." "$kind"
             exit 0
           fi
           if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
