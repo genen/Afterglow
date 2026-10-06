@@ -28,7 +28,7 @@ Install the .NET 10 SDK, then from the project root:
 ./Windows/scripts/build.ps1                  # self-contained win-x64 ZIP
 ./Windows/scripts/build.ps1 -Runtime win-arm64
 ./Windows/scripts/build.ps1 -Stable
-./Windows/scripts/installer.ps1              # Afterglow-Setup-win-x64.msi
+./Windows/scripts/installer.ps1              # Afterglow-Setup-<version>-win-x64.msi
 ./Windows/scripts/installer.ps1 -Runtime win-arm64
 ./Windows/scripts/test.ps1                   # core + native checks on x64
 # ARM64 native host:
@@ -39,7 +39,7 @@ The setup installs for all users into `C:\Program Files\Afterglow`, adds Start m
 
 Afterglow runs as the signed-in user. CPU temperature and package power come from LibreHardwareMonitor, which needs the PawnIO driver and administrator access. The MSI installs PawnIO 2.2.0 (signed by namazso, pinned by SHA-256 in `installer.ps1`) in the same setup, and leaves it installed on uninstall because other monitoring tools share it. The app itself never downloads anything. With the portable ZIP, install PawnIO from pawnio.eu. Either way, CPU temperature and package power appear after **Settings › Restart as administrator**; until then they show **Unavailable**.
 
-Pushes to `main` and pull requests build, test, and keep `Afterglow-Setup-<version>-win-x64.msi` as a workflow artifact. To publish, push a tag that matches `<Version>`, such as `v1.5.0`, or run the workflow by hand from the Actions tab with that tag; a hand run creates the tag on the commit it built. The workflow puts that one file on the release for the tag, creating the release if needed. The release is labelled from `<InformationalVersion>`: stable releases become Latest, and beta releases are marked as pre-releases. It does not overwrite an MSI already on a release unless you run it by hand with Replace checked. The source zip and tar.gz are added by GitHub and are not the installer.
+Pushes to `main` and pull requests build, test, and keep `Afterglow-Setup-<version>-win-x64.msi` as a workflow artifact with the same name. To publish, push a tag that matches `<Version>`, such as `v1.5.0`, or run the workflow by hand from the Actions tab with that tag; a hand run creates the tag on the commit it built. The workflow puts that one file on the release for the tag, creating the release if needed. The release is labelled from `<InformationalVersion>`: stable releases become Latest, and beta releases are marked as pre-releases. It does not overwrite an MSI already on a release unless you run it by hand with Replace checked. The source zip and tar.gz are added by GitHub and are not the installer.
 
 Development: `dotnet run --project Windows/Afterglow.Windows`. Open `Windows/Afterglow.slnx` in a .NET 10-compatible IDE. `-FrameworkDependent` creates a smaller build requiring the matching .NET 10 Desktop Runtime. Use a clean output folder when changing publishing modes.
 
