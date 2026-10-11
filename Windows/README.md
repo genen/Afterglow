@@ -1,6 +1,6 @@
 # Afterglow for Windows
 
-Native WPF shell and core monitoring implementation, targeting .NET 10 and Windows 10/11 x64 or ARM64. No browser runtime, telemetry uploads, account, background service, or administrator requirement. This is the first Windows port; see the [feature inventory and roadmap](../docs/WINDOWS-PORT.md).
+Developer notes for the Windows app. For what Afterglow does, see the [main README](../README.md). Native WPF app targeting .NET 10 and Windows 10/11 x64 or ARM64, with no browser runtime, telemetry uploads, account or background service. It asks for administrator at launch so it can read CPU temperature and power. This is the first Windows port; see the [feature inventory and roadmap](../docs/WINDOWS-PORT.md).
 
 ## Install
 
