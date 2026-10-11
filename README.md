@@ -5,3 +5,5 @@ Beyond the summary dashboard, Afterglow digs into the details. The Performance p
 Afterglow also covers the wider state of your PC. It lists startup programs and scheduled tasks, installed apps, Windows services, live network connections with the programs that own them, power and battery details, and which folders are using the most disk space. A Flight Recorder can capture a session of activity, up to an hour, so you can save it and replay it later to work out what happened during a slowdown. There are also quick built-in benchmarks for the CPU, memory and disk, optional alerts for high temperature, low memory or a runaway process, and a compact mini-window you can keep on screen.
 
 Afterglow installs with a single setup program, which also installs the signed sensor driver needed for CPU temperature and power readings. Setup can launch the app as soon as it finishes. Afterglow asks for administrator permission when it opens, because Windows only gives those readings to admin programs. It also lives in the system tray, showing a live readout of CPU and temperature.
+
+Go to the RELEASE link to the right to get the installer.
