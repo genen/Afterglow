@@ -13,16 +13,18 @@ $output = Join-Path $root "artifacts/$suffix"
 $selfContained = (-not $FrameworkDependent.IsPresent).ToString().ToLowerInvariant()
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $projectText = [System.IO.File]::ReadAllText($project)
-if ($projectText -notmatch '<Version>(\d+)\.(\d+)\.\d+</Version>') { throw 'Version element was not found in Afterglow.Windows.csproj.' }
+if ($projectText -notmatch '<Version>(\d+)\.(\d+)\.(\d+)</Version>') { throw 'Version element was not found in Afterglow.Windows.csproj.' }
 $major = [int]$Matches[1]
 $minor = [int]$Matches[2]
-if (-not $Stable -and -not $KeepVersion) { $minor += 1 }
+$patch = [int]$Matches[3]
+# Keep the patch number unless this build advances the minor version.
+if (-not $Stable -and -not $KeepVersion) { $minor += 1; $patch = 0 }
 $channel = if ($Stable) { 'stable' } else { 'beta' }
-$projectText = [regex]::Replace($projectText, '<Version>\d+\.\d+\.\d+</Version>', "<Version>$major.$minor.0</Version>", 1)
-$projectText = [regex]::Replace($projectText, '<InformationalVersion>[^<]*</InformationalVersion>', "<InformationalVersion>$major.$minor.0 $channel</InformationalVersion>", 1)
+$projectText = [regex]::Replace($projectText, '<Version>\d+\.\d+\.\d+</Version>', "<Version>$major.$minor.$patch</Version>", 1)
+$projectText = [regex]::Replace($projectText, '<InformationalVersion>[^<]*</InformationalVersion>', "<InformationalVersion>$major.$minor.$patch $channel</InformationalVersion>", 1)
 $utf8 = New-Object System.Text.UTF8Encoding $false
 [System.IO.File]::WriteAllText($project, $projectText, $utf8)
-Write-Output "Version $major.$minor.0 $channel"
+Write-Output "Version $major.$minor.$patch $channel"
 dotnet publish $project -c Release -r $Runtime --self-contained $selfContained -o $output
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 $readme = (Get-Content (Join-Path $root 'README.md') -Raw).Replace('../docs/WINDOWS-PORT.md', 'WINDOWS-PORT.md')
