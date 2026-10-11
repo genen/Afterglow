@@ -2,9 +2,9 @@
 
 Native WPF shell and core monitoring implementation, targeting .NET 10 and Windows 10/11 x64 or ARM64. No browser runtime, telemetry uploads, account, background service, or administrator requirement. This is the first Windows port; see the [feature inventory and roadmap](../docs/WINDOWS-PORT.md).
 
-## Run the portable app
+## Install
 
-Extract **all** files from `Afterglow-win-x64.zip` (Intel/AMD) or `Afterglow-win-arm64.zip` (Windows on ARM) into a folder, then run `Afterglow.exe`. The default packages include .NET. The builds are unsigned. They cannot run directly on macOS.
+Download `Afterglow-Setup-<version>-win-x64.msi` from the latest release on GitHub and run it. The installer includes .NET and the PawnIO sensor driver, so nothing else needs to be installed. The installer is unsigned. Afterglow runs on Windows 10 and 11.
 
 Version 1.6.4 beta. Each run of `build.ps1` advances the minor number and labels that build beta. Settings shows the label. Beta is removed only from a version reported as stable, by rebuilding with `build.ps1 -Stable`. Implemented:
 
@@ -25,7 +25,7 @@ CPU in process tables is a percent of all logical processors counted at launch, 
 Install the .NET 10 SDK, then from the project root:
 
 ```powershell
-./Windows/scripts/build.ps1                  # self-contained win-x64 ZIP
+./Windows/scripts/build.ps1                  # app build used by installer.ps1
 ./Windows/scripts/build.ps1 -Runtime win-arm64
 ./Windows/scripts/build.ps1 -Stable
 ./Windows/scripts/installer.ps1              # Afterglow-Setup-<version>-win-x64.msi
@@ -37,11 +37,11 @@ Install the .NET 10 SDK, then from the project root:
 
 The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, offers "Run after install?" on its last page (ticked by default), and appears in Settings under Apps. It asks for administrator because it installs into Program Files and installs the PawnIO sensor driver. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
 
-Afterglow asks for administrator when it starts, because CPU temperature and package power come from LibreHardwareMonitor, which needs the PawnIO driver and administrator access. The MSI installs PawnIO 2.2.0 (signed by namazso, pinned by SHA-256 in `installer.ps1`) in the same setup, and leaves it installed on uninstall because other monitoring tools share it. The app itself never downloads anything. With the portable ZIP, install PawnIO from pawnio.eu. If you decline the prompt or use a standard account, those readings show **Unavailable** until you use **Settings › Restart as administrator**.
+Afterglow asks for administrator when it starts, because CPU temperature and package power come from LibreHardwareMonitor, which needs the PawnIO driver and administrator access. The MSI installs PawnIO 2.2.0 (signed by namazso, pinned by SHA-256 in `installer.ps1`) in the same setup, and leaves it installed on uninstall because other monitoring tools share it. The app itself never downloads anything. If you decline the prompt or use a standard account, those readings show **Unavailable** until you use **Settings › Restart as administrator**.
 
 Pushes to `main` and pull requests build, test, and keep `Afterglow-Setup-<version>-win-x64.msi` as a workflow artifact with the same name. To publish, push a tag that matches `<Version>`, such as `v1.5.0`, or run the workflow by hand from the Actions tab with that tag; a hand run creates the tag on the commit it built. The workflow puts that one file on the release for the tag, creating the release if needed. The release is labelled from `<InformationalVersion>`: stable releases become Latest, and beta releases are marked as pre-releases. It does not overwrite an MSI already on a release unless you run it by hand with Replace checked. The source zip and tar.gz are added by GitHub and are not the installer.
 
-Development: `dotnet run --project Windows/Afterglow.Windows`. Open `Windows/Afterglow.slnx` in a .NET 10-compatible IDE. `-FrameworkDependent` creates a smaller build requiring the matching .NET 10 Desktop Runtime. Use a clean output folder when changing publishing modes.
+Development: `dotnet run --project Windows/Afterglow.Windows`. Open `Windows/Afterglow.slnx` in a .NET 10-compatible IDE.
 
 The smoke test writes `afterglow-smoke-test.json` in the app working directory, collects real telemetry, enumerates inventories, and terminates only a disposable child it creates. Exit code 0 means pass. CI builds the x64 app and MSI and runs the core and native checks on the x64 Windows runner. ARM64 builds are made locally.
 
