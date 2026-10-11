@@ -14,7 +14,7 @@ WPF was not executed. PDH, DXGI, WMI, IP Helper, Toolhelp, Service Control Manag
 
 Inspected the running Mac Summary and Processes windows via native screenshots and compared them with their SwiftUI implementation. Reworked the Windows shell and Summary to follow the same layout, spacing, charcoal palette, icon sidebar, bottom wordmark, footer controls, VFD meters, phosphor colors/bloom, CPU/kernel overlays, memory fill, six resource cards and compact top-process table. The process list now includes CPU bars. Existing color choices persist; new installations default to Full color. The native Windows title bar is retained.
 
-Release compilation and both portable architectures were rebuilt after this change. WPF rendering still requires Windows: no Windows screenshot or pixel-level equivalence is claimed. On Windows, specifically verify the Summary at 1100×720 and 1440×920, high DPI, all five color modes, saturation endpoints, bloom on/off, missing sensors, meter animation and graph hovering after pauses. Use the header ⋯ menu for open/save and companion windows; record/pause controls are now in the footer.
+Release compilation and both architectures were rebuilt after this change. WPF rendering still requires Windows: no Windows screenshot or pixel-level equivalence is claimed. On Windows, specifically verify the Summary at 1100×720 and 1440×920, high DPI, all five color modes, saturation endpoints, bloom on/off, missing sensors, meter animation and graph hovering after pauses. Use the header ⋯ menu for open/save and companion windows; record/pause controls are now in the footer.
 
 ## Executed here
 
@@ -32,7 +32,7 @@ WPF cannot run on macOS. Win32 telemetry, process token access, PDH availability
 
 ## Windows acceptance checklist
 
-1. Extract the entire matching architecture ZIP; launch `Afterglow.exe` as a normal user. Verify window scaling at 100%, 150%, 200%, keyboard focus and text contrast, resizing, table scrolling and all 13 destinations. Confirm no elevation request.
+1. Install `Afterglow-Setup-<version>-win-x64.msi` and launch Afterglow from the Start menu. Verify window scaling at 100%, 150%, 200%, keyboard focus and text contrast, resizing, table scrolling and all 13 destinations. Confirm the administrator prompt appears for admin accounts.
 2. Run `Windows/scripts/test.ps1`, or launch `Afterglow.exe --self-test` with a writable current directory. Inspect `afterglow-smoke-test.json` and exit code. It checks native structure layouts, real samples, inventories, trace round-trip, stale/replay process rejection and termination of a disposable child created by the test.
 3. Compare CPU and physical memory against Task Manager after two warm-up samples and under a short workload. Task Manager commonly normalizes process CPU across processors; this app uses one core = 100%. Inspect network and disk during real transfer activity. Validate on non-English Windows, battery and desktop devices, disconnected networking, inaccessible processes and >64-core systems.
 4. Start/stop/save a recording, reopen it, play/pause/seek, return to live. Check timestamp pacing, numeric sorting, unchanged selected PID identity, unavailable gaps, and disabled process actions/inventories in replay. Import a Mac v1 trace, preserve the original, re-export supported fields and reopen.
@@ -41,4 +41,4 @@ WPF cannot run on macOS. Win32 telemetry, process token access, PDH availability
 7. Run all three benchmarks once. Confirm disk read verification and temporary file cleanup. Navigate away/back during a benchmark; repeated runs must be refused until completion.
 8. Run for an hour, including sleep/resume and adapter changes; inspect UI responsiveness, CPU cost, memory/handle stability, recorder limits and incomplete/access-denied providers. Repeat native checks on actual ARM64 Windows before release.
 
-Release signing, installer testing, Windows UI acceptance and hardware-provider parity remain open. These portable archives are development builds.
+Release signing, installer testing, Windows UI acceptance and hardware-provider parity remain open.
