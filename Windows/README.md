@@ -6,7 +6,7 @@ Native WPF shell and core monitoring implementation, targeting .NET 10 and Windo
 
 Extract **all** files from `Afterglow-win-x64.zip` (Intel/AMD) or `Afterglow-win-arm64.zip` (Windows on ARM) into a folder, then run `Afterglow.exe`. The default packages include .NET. The builds are unsigned. They cannot run directly on macOS.
 
-Version 1.6.2 beta. Each run of `build.ps1` advances the minor number and labels that build beta. Settings shows the label. Beta is removed only from a version reported as stable, by rebuilding with `build.ps1 -Stable`. Implemented:
+Version 1.6.3 beta. Each run of `build.ps1` advances the minor number and labels that build beta. Settings shows the label. Beta is removed only from a version reported as stable, by rebuilding with `build.ps1 -Stable`. Implemented:
 
 - Mac-style WPF shell with 13 icon destinations, glowing computer logo, footer controls, resizable window, keyboard navigation, and virtualized tables. Dark, Light, and System appearance. Full color plus green, amber, blue, and mono, saturation 0–11, and phosphor bloom.
 - Summary: CPU, package-power, temperature, and GPU gauges. The power gauge stays unavailable unless a real package-watt source exists. CPU/kernel history can show temperature on a second scale. Top processes, memory pressure, cache, commit, and page-file percent. Disk, network, battery-rate, GPU, NPU, and thermal cards. NPU stays unavailable. Battery rate is labelled as battery rate, not package power.
@@ -35,7 +35,7 @@ Install the .NET 10 SDK, then from the project root:
 ./Windows/scripts/test.ps1 -AppPath ./Windows/artifacts/win-arm64/Afterglow.exe
 ```
 
-The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, and appears in Settings under Apps. It asks for administrator because it installs into Program Files and installs the PawnIO sensor driver. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
+The setup installs for all users into `C:\Program Files\Afterglow`, adds Start menu and desktop shortcuts, offers "Run after install?" on its last page (ticked by default), and appears in Settings under Apps. It asks for administrator because it installs into Program Files and installs the PawnIO sensor driver. The MSI is unsigned. A later build with the same architecture replaces the installed copy.
 
 Afterglow asks for administrator when it starts, because CPU temperature and package power come from LibreHardwareMonitor, which needs the PawnIO driver and administrator access. The MSI installs PawnIO 2.2.0 (signed by namazso, pinned by SHA-256 in `installer.ps1`) in the same setup, and leaves it installed on uninstall because other monitoring tools share it. The app itself never downloads anything. With the portable ZIP, install PawnIO from pawnio.eu. If you decline the prompt or use a standard account, those readings show **Unavailable** until you use **Settings › Restart as administrator**.
 
