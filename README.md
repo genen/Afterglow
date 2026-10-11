@@ -6,4 +6,4 @@ Afterglow also covers the wider state of your PC. It lists startup programs and 
 
 Afterglow installs with a single setup program, which also installs the signed sensor driver needed for CPU temperature and power readings. Setup can launch the app as soon as it finishes. Afterglow asks for administrator permission when it opens, because Windows only gives those readings to admin programs. It also lives in the system tray, showing a live readout of CPU and temperature.
 
-Go to the RELEASE link to the right to get the installer.
+Go to the RELEASE link to the right to get the installer. https://github.com/genen/Afterglow/releases
