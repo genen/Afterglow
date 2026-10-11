@@ -8,7 +8,16 @@
     <Property Id="ARPPRODUCTICON" Value="Afterglow.ico" />
     <Property Id="ARPCOMMENTS" Value="System monitor" />
     <WixVariable Id="WixUILicenseRtf" Value="$(var.EulaPath)" />
-    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <!-- The last page of setup offers "Run after install?", ticked by default. WixShellExec launches the app through the
+         shell so its manifest can ask for administrator. Silent installs show no UI, so they never launch it. -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Run after install?" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[INSTALLFOLDER]Afterglow.exe" />
+    <CustomAction Id="LaunchAfterglow" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchAfterglow" Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+    </UI>
 
     <!-- PawnIO is the signed sensor driver LibreHardwareMonitor uses for CPU temperature and package power.
          installer.ps1 pins it by SHA-256 and checks the namazso signature. It runs from the MSI, so there is one installer.
