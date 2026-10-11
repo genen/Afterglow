@@ -30,13 +30,13 @@ Mac source anchors: `App.swift` for navigation/settings/window modes; `Dashboard
 
 ## Architecture decision
 
-Use **C# / .NET 10 / WPF**, with native Win32 providers. WPF provides a Windows desktop control model, efficient virtualized tables, custom vector graphs, keyboard accessibility and ordinary portable deployment. This is a replacement for the SwiftUI frontend and Mach/IOKit providers, not a binary conversion. It requires no browser shell and no kernel driver for the core features.
+Use **C# / .NET 10 / WPF**, with native Win32 providers. WPF provides a Windows desktop control model, efficient virtualized tables, custom vector graphs, keyboard accessibility and ordinary MSI deployment. This is a replacement for the SwiftUI frontend and Mach/IOKit providers, not a binary conversion. It requires no browser shell and no kernel driver for the core features.
 
 - `Afterglow.Core`: platform-neutral records, rate/CPU math, identity policy, formatting/CSV, validated versioned trace storage and benchmarks.
 - `Afterglow.Windows`: WPF shell, graph drawing, user settings, serial worker-based sampling, registry/network/SCM inventories, P/Invoke telemetry and process controls.
 - `Afterglow.Tests`: package-free executable tests runnable on Mac, Linux and Windows.
 - `--self-test`: Windows-native layouts/provider/termination/trace smoke checks.
-- `scripts/build.ps1`, `scripts/test.ps1` and Windows CI: portable x64/ARM64 builds and validation.
+- `scripts/build.ps1`, `scripts/test.ps1` and Windows CI: x64/ARM64 builds, the MSI installer, and validation.
 
 Sampling runs off the UI thread with at most one sample in flight. Page and replay generation checks reject stale worker results. Live graph history retains only samples, not old process tables. Process identity is PID plus kernel creation FILETIME. Termination rechecks identity and critical-process status on the same open handle used to act. No automatic elevation or service mutation is implemented.
 
@@ -66,7 +66,7 @@ Trace compatibility is intentionally versioned. Windows reads Mac v1 recordings 
 1. **Inventory and core port — implemented.** Native shell, inventories, recorder, benchmarks, and process-action guardrails. Mac-host checks passed. Windows runtime acceptance is still outstanding.
 2. **Monitoring parity — implemented in source, not runtime-proven here.** Per-core group-aware PDH, per-disk and per-adapter graphs, GPU engine aggregation, process tree and inspector, PID-owned TCP/UDP, Store family names, scheduled tasks, cancellable folder scan, and tray readout. x64/ARM64 Windows, non-English Windows, hotplug, and access-denied behavior still need a Windows machine.
 3. **Hardware and visual parity — partial.** Light/System appearance, phosphor ribbons, memory-pressure, temperature, and sustained-CPU alerts are implemented. Package watts, vendor rails, and NPU utilization stay unavailable rather than estimated.
-4. **Release hardening — open.** Long-run profiling, DPI and screen-reader checks, sleep/resume, >64-core coverage, trace fuzzing, and signed binaries are not done. These archives are unsigned development builds.
+4. **Release hardening — open.** Long-run profiling, DPI and screen-reader checks, sleep/resume, >64-core coverage, trace fuzzing, and signed binaries are not done. The installer is unsigned.
 
 ## Primary technical references
 
