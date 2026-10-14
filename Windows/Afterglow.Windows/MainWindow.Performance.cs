@@ -34,8 +34,12 @@ internal sealed partial class MainWindow
             if (section == perfSection) button.BorderBrush = Theme.Accent;
             button.HorizontalAlignment = HorizontalAlignment.Stretch;
             button.HorizontalContentAlignment = HorizontalAlignment.Left;
+            // The theme's button style insets the right edge; give the meter the same inset so it ends flush with the pill.
+            button.Margin = new Thickness(0, 0, 8, 0);
             rail.Children.Add(button);
-            rail.Children.Add(Meter(SectionFraction(section), SectionTone(section), false, 12, 18));
+            var meter = Meter(SectionFraction(section), SectionTone(section), false, 12, 18);
+            meter.Margin = button.Margin;
+            rail.Children.Add(meter);
         }
         root.Children.Add(new ScrollViewer { Content = rail, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         var detail = new ScrollViewer { Content = PerformanceDetail(), VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
